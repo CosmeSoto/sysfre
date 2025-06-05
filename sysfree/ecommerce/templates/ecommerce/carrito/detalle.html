@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Carrito de Compras" %} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6">{% trans "Carrito de Compras" %}</h1>
+    
+    {% if carrito.items.exists %}
+    <div class="flex flex-col lg:flex-row gap-8">
+        <!-- Tabla de productos -->
+        <div class="w-full lg:w-2/3">
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                {% trans "Producto" %}
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                {% trans "Precio" %}
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                {% trans "Cantidad" %}
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                {% trans "Subtotal" %}
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                {% trans "Acciones" %}
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for item in carrito.items.all %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    {% if not item.es_servicio %}
+                                    <div class="flex-shrink-0 h-10 w-10">
+                                        <img class="h-10 w-10 rounded-full object-cover" src="{{ item.producto.imagen.url|default:'https://via.placeholder.com/40' }}" alt="{{ item.producto.nombre }}">
+                                    </div>
+                                    {% else %}
+                                    <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                        <i class="fas fa-tools text-blue-600"></i>
+                                    </div>
+                                    {% endif %}
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">
+                                            {% if item.es_servicio %}
+                                                {{ item.item }}
+                                                <span class="ml-1 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">{% trans "Servicio" %}</span>
+                                            {% else %}
+                                                {{ item.producto.nombre }}
+                                            {% endif %}
+                                        </div>
+                                        {% if not item.es_servicio %}
+                                        <div class="text-sm text-gray-500">
+                                            {{ item.producto.codigo }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">${{ item.precio_unitario }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <form method="post" action="{% url 'ecommerce:carrito_actualizar' item.id %}" class="flex items-center">
+                                    {% csrf_token %}
+                                    <button type="button" class="decrease-qty bg-gray-200 hover:bg-gray-300 text-gray-600 w-8 h-8 rounded-l flex items-center justify-center">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                    <input type="number" name="cantidad" value="{{ item.cantidad }}" min="1" max="99" class="qty-input w-12 h-8 text-center border-t border-b border-gray-300">
+                                    <button type="button" class="increase-qty bg-gray-200 hover:bg-gray-300 text-gray-600 w-8 h-8 rounded-r flex items-center justify-center">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button type="submit" class="ml-2 text-blue-600 hover:text-blue-800">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </form>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">${{ item.subtotal }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <form method="post" action="{% url 'ecommerce:carrito_eliminar' item.id %}" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="text-red-600 hover:text-red-900">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-4 flex justify-between">
+                <a href="{% url 'ecommerce:inicio' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200">
+                    <i class="fas fa-arrow-left mr-2"></i> {% trans "Continuar comprando" %}
+                </a>
+                <form method="post" action="{% url 'ecommerce:carrito_vaciar' %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200">
+                        <i class="fas fa-trash mr-2"></i> {% trans "Vaciar carrito" %}
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Resumen del carrito -->
+        <div class="w-full lg:w-1/3">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4">{% trans "Resumen del pedido" %}</h2>
+                
+                <div class="border-t border-gray-200 pt-4">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-gray-600">{% trans "Subtotal" %}</span>
+                        <span class="font-medium">${{ carrito.subtotal }}</span>
+                    </div>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-gray-600">{% trans "Impuestos" %}</span>
+                        <span class="font-medium">${{ carrito.total_impuestos }}</span>
+                    </div>
+                    <div class="border-t border-gray-200 mt-2 pt-2 flex justify-between">
+                        <span class="text-lg font-semibold">{% trans "Total" %}</span>
+                        <span class="text-lg font-semibold">${{ carrito.total }}</span>
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <a href="{% url 'ecommerce:checkout' %}" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded flex items-center justify-center">
+                        {% trans "Proceder al pago" %} <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow-md p-8 text-center">
+        <div class="text-gray-400 mb-4">
+            <i class="fas fa-shopping-cart text-6xl"></i>
+        </div>
+        <h2 class="text-2xl font-semibold mb-4">{% trans "Tu carrito está vacío" %}</h2>
+        <p class="text-gray-600 mb-6">{% trans "Parece que aún no has añadido productos a tu carrito." %}</p>
+        <a href="{% url 'ecommerce:inicio' %}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+            {% trans "Ir a comprar" %} <i class="fas fa-arrow-right ml-2"></i>
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Botones para incrementar/decrementar cantidad
+        document.querySelectorAll('.decrease-qty').forEach(function(button) {
+            button.addEventListener('click', function() {
+                var input = this.parentNode.querySelector('.qty-input');
+                var value = parseInt(input.value);
+                if (value > 1) {
+                    input.value = value - 1;
+                }
+            });
+        });
+        
+        document.querySelectorAll('.increase-qty').forEach(function(button) {
+            button.addEventListener('click', function() {
+                var input = this.parentNode.querySelector('.qty-input');
+                var value = parseInt(input.value);
+                input.value = value + 1;
+            });
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}

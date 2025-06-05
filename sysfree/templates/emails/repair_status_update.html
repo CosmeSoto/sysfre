@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actualización de reparación</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #2563eb;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        .content {
+            padding: 20px;
+            background-color: #f9fafb;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: #6b7280;
+        }
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .status-recibido { background-color: #dbeafe; color: #1e40af; }
+        .status-diagnostico { background-color: #fef3c7; color: #92400e; }
+        .status-espera_repuestos { background-color: #ffedd5; color: #9a3412; }
+        .status-en_reparacion { background-color: #f3e8ff; color: #6b21a8; }
+        .status-reparado { background-color: #d1fae5; color: #065f46; }
+        .status-entregado { background-color: #e0e7ff; color: #3730a3; }
+        .status-no_reparable { background-color: #fee2e2; color: #b91c1c; }
+        .status-cancelado { background-color: #f3f4f6; color: #4b5563; }
+        .button {
+            display: inline-block;
+            background-color: #2563eb;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .info-box {
+            background-color: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Actualización de tu reparación</h1>
+        </div>
+        
+        <div class="content">
+            <p>Hola {{ cliente.nombre }},</p>
+            
+            <p>Queremos informarte que el estado de tu reparación ha sido actualizado:</p>
+            
+            <div class="info-box">
+                <p><strong>Número de reparación:</strong> {{ reparacion.numero }}</p>
+                <p><strong>Equipo:</strong> {{ reparacion.tipo_equipo }} {{ reparacion.marca }} {{ reparacion.modelo }}</p>
+                <p><strong>Nuevo estado:</strong> 
+                    <span class="status status-{{ reparacion.estado }}">{{ estado }}</span>
+                </p>
+                
+                {% if reparacion.estado == 'diagnostico' %}
+                <p>Estamos realizando un diagnóstico detallado de tu equipo para determinar el problema.</p>
+                {% elif reparacion.estado == 'espera_repuestos' %}
+                <p>Hemos identificado los repuestos necesarios y estamos esperando su llegada.</p>
+                {% elif reparacion.estado == 'en_reparacion' %}
+                <p>Tu equipo está siendo reparado por nuestros técnicos.</p>
+                {% elif reparacion.estado == 'reparado' %}
+                <p>¡Buenas noticias! Tu equipo ha sido reparado y está listo para ser recogido.</p>
+                {% elif reparacion.estado == 'entregado' %}
+                <p>Tu equipo ha sido entregado. Esperamos que estés satisfecho con nuestro servicio.</p>
+                {% elif reparacion.estado == 'no_reparable' %}
+                <p>Lamentamos informarte que tu equipo no puede ser reparado. Por favor, contacta con nosotros para discutir las opciones disponibles.</p>
+                {% endif %}
+            </div>
+            
+            {% if reparacion.diagnostico and reparacion.estado == 'diagnostico' %}
+            <div class="info-box">
+                <h3>Diagnóstico</h3>
+                <p>{{ reparacion.diagnostico }}</p>
+            </div>
+            {% endif %}
+            
+            {% if reparacion.solucion and reparacion.estado == 'reparado' %}
+            <div class="info-box">
+                <h3>Solución aplicada</h3>
+                <p>{{ reparacion.solucion }}</p>
+            </div>
+            {% endif %}
+            
+            <p>Puedes ver los detalles completos de tu reparación en tu cuenta:</p>
+            
+            <a href="{{ site_url }}{% url 'ecommerce:cuenta_reparacion_detail' reparacion.numero %}" class="button">Ver detalles de la reparación</a>
+            
+            <p>Si tienes alguna pregunta, no dudes en contactarnos.</p>
+            
+            <p>Saludos,<br>
+            El equipo de Freecom</p>
+        </div>
+        
+        <div class="footer">
+            <p>© {% now "Y" %} Freecom. Todos los derechos reservados.</p>
+            <p>Este correo fue enviado a {{ cliente.email }}</p>
+        </div>
+    </div>
+</body>
+</html>

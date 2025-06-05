@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Detalle de Reparación" %} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex flex-col md:flex-row">
+        <!-- Menú lateral -->
+        <div class="w-full md:w-1/4 mb-6 md:mb-0 md:pr-6">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center mb-6">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-blue-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h2 class="text-lg font-semibold">{{ request.user.get_full_name }}</h2>
+                        <p class="text-sm text-gray-600">{{ request.user.email }}</p>
+                    </div>
+                </div>
+                
+                <nav>
+                    <ul>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_dashboard' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md">
+                                <i class="fas fa-tachometer-alt w-5"></i>
+                                <span class="ml-2">{% trans "Panel de control" %}</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_pedidos' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md">
+                                <i class="fas fa-shopping-bag w-5"></i>
+                                <span class="ml-2">{% trans "Mis pedidos" %}</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_reparaciones' %}" class="flex items-center py-2 px-4 bg-blue-50 text-blue-700 rounded-md">
+                                <i class="fas fa-tools w-5"></i>
+                                <span class="ml-2">{% trans "Mis reparaciones" %}</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_direcciones' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md">
+                                <i class="fas fa-map-marker-alt w-5"></i>
+                                <span class="ml-2">{% trans "Mis direcciones" %}</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_perfil' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md">
+                                <i class="fas fa-user-edit w-5"></i>
+                                <span class="ml-2">{% trans "Mi perfil" %}</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'logout' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md text-red-600">
+                                <i class="fas fa-sign-out-alt w-5"></i>
+                                <span class="ml-2">{% trans "Cerrar sesión" %}</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        
+        <!-- Contenido principal -->
+        <div class="w-full md:w-3/4">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-2xl font-bold">{% trans "Reparación" %} #{{ reparacion.numero }}</h1>
+                    <a href="{% url 'ecommerce:cuenta_reparaciones' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <i class="fas fa-arrow-left mr-2"></i> {% trans "Volver a reparaciones" %}
+                    </a>
+                </div>
+                
+                <!-- Estado actual -->
+                <div class="mb-6">
+                    <div class="bg-gray-50 rounded-lg p-4 flex items-center">
+                        <div class="w-12 h-12 rounded-full flex items-center justify-center mr-4
+                            {% if reparacion.estado == 'recibido' %}bg-blue-100 text-blue-600
+                            {% elif reparacion.estado == 'diagnostico' %}bg-yellow-100 text-yellow-600
+                            {% elif reparacion.estado == 'espera_repuestos' %}bg-orange-100 text-orange-600
+                            {% elif reparacion.estado == 'en_reparacion' %}bg-purple-100 text-purple-600
+                            {% elif reparacion.estado == 'reparado' %}bg-green-100 text-green-600
+                            {% elif reparacion.estado == 'entregado' %}bg-indigo-100 text-indigo-600
+                            {% elif reparacion.estado == 'no_reparable' %}bg-red-100 text-red-600
+                            {% elif reparacion.estado == 'cancelado' %}bg-gray-100 text-gray-600
+                            {% endif %}">
+                            {% if reparacion.estado == 'recibido' %}
+                            <i class="fas fa-inbox text-2xl"></i>
+                            {% elif reparacion.estado == 'diagnostico' %}
+                            <i class="fas fa-search text-2xl"></i>
+                            {% elif reparacion.estado == 'espera_repuestos' %}
+                            <i class="fas fa-clock text-2xl"></i>
+                            {% elif reparacion.estado == 'en_reparacion' %}
+                            <i class="fas fa-wrench text-2xl"></i>
+                            {% elif reparacion.estado == 'reparado' %}
+                            <i class="fas fa-check text-2xl"></i>
+                            {% elif reparacion.estado == 'entregado' %}
+                            <i class="fas fa-handshake text-2xl"></i>
+                            {% elif reparacion.estado == 'no_reparable' %}
+                            <i class="fas fa-times text-2xl"></i>
+                            {% elif reparacion.estado == 'cancelado' %}
+                            <i class="fas fa-ban text-2xl"></i>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">{% trans "Estado actual" %}</div>
+                            <div class="text-xl font-semibold">{{ reparacion.get_estado_display }}</div>
+                        </div>
+                        
+                        {% if reparacion.tecnico %}
+                        <div class="ml-auto">
+                            <div class="text-sm text-gray-500">{% trans "Técnico asignado" %}</div>
+                            <div class="font-medium">{{ reparacion.tecnico.get_full_name }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Información del equipo -->
+                <div class="mb-6">
+                    <h2 class="text-lg font-medium mb-3">{% trans "Información del equipo" %}</h2>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <div class="text-sm text-gray-500">{% trans "Tipo de equipo" %}</div>
+                                <div class="font-medium">{{ reparacion.tipo_equipo }}</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">{% trans "Marca" %}</div>
+                                <div class="font-medium">{{ reparacion.marca }}</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">{% trans "Modelo" %}</div>
+                                <div class="font-medium">{{ reparacion.modelo }}</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">{% trans "Número de serie" %}</div>
+                                <div class="font-medium">{{ reparacion.numero_serie|default:"-" }}</div>
+                            </div>
+                        </div>
+                        
+                        {% if reparacion.accesorios %}
+                        <div class="mt-4">
+                            <div class="text-sm text-gray-500">{% trans "Accesorios" %}</div>
+                            <div class="font-medium">{{ reparacion.accesorios }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Detalles de la reparación -->
+                <div class="mb-6">
+                    <h2 class="text-lg font-medium mb-3">{% trans "Detalles de la reparación" %}</h2>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="mb-4">
+                            <div class="text-sm text-gray-500">{% trans "Problema reportado" %}</div>
+                            <div class="font-medium">{{ reparacion.problema_reportado }}</div>
+                        </div>
+                        
+                        {% if reparacion.diagnostico %}
+                        <div class="mb-4">
+                            <div class="text-sm text-gray-500">{% trans "Diagnóstico" %}</div>
+                            <div class="font-medium">{{ reparacion.diagnostico }}</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if reparacion.solucion %}
+                        <div class="mb-4">
+                            <div class="text-sm text-gray-500">{% trans "Solución" %}</div>
+                            <div class="font-medium">{{ reparacion.solucion }}</div>
+                        </div>
+                        {% endif %}
+                        
+                        {% if reparacion.observaciones %}
+                        <div>
+                            <div class="text-sm text-gray-500">{% trans "Observaciones" %}</div>
+                            <div class="font-medium">{{ reparacion.observaciones }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Seguimiento -->
+                <div class="mb-6">
+                    <h2 class="text-lg font-medium mb-3">{% trans "Seguimiento" %}</h2>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="space-y-4">
+                            {% for seguimiento in reparacion.seguimientos.all %}
+                            <div class="border-b border-gray-200 pb-4 {% if forloop.last %}border-b-0 pb-0{% endif %}">
+                                <div class="flex items-center mb-2">
+                                    <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3
+                                        {% if seguimiento.estado == 'recibido' %}bg-blue-100 text-blue-600
+                                        {% elif seguimiento.estado == 'diagnostico' %}bg-yellow-100 text-yellow-600
+                                        {% elif seguimiento.estado == 'espera_repuestos' %}bg-orange-100 text-orange-600
+                                        {% elif seguimiento.estado == 'en_reparacion' %}bg-purple-100 text-purple-600
+                                        {% elif seguimiento.estado == 'reparado' %}bg-green-100 text-green-600
+                                        {% elif seguimiento.estado == 'entregado' %}bg-indigo-100 text-indigo-600
+                                        {% elif seguimiento.estado == 'no_reparable' %}bg-red-100 text-red-600
+                                        {% elif seguimiento.estado == 'cancelado' %}bg-gray-100 text-gray-600
+                                        {% endif %}">
+                                        <i class="fas fa-circle text-xs"></i>
+                                    </div>
+                                    <div class="font-medium">{{ seguimiento.get_estado_display }}</div>
+                                    <div class="ml-auto text-sm text-gray-500">{{ seguimiento.fecha|date:"d/m/Y H:i" }}</div>
+                                </div>
+                                <div class="ml-11 text-sm text-gray-700">{{ seguimiento.descripcion }}</div>
+                            </div>
+                            {% empty %}
+                            <div class="text-center py-4">
+                                <p class="text-gray-500">{% trans "No hay registros de seguimiento disponibles." %}</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Costos -->
+                <div class="mb-6">
+                    <h2 class="text-lg font-medium mb-3">{% trans "Costos" %}</h2>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <div class="text-sm text-gray-500">{% trans "Costo de diagnóstico" %}</div>
+                                <div class="font-medium">${{ reparacion.costo_diagnostico }}</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">{% trans "Costo de reparación" %}</div>
+                                <div class="font-medium">${{ reparacion.costo_reparacion }}</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">{% trans "Costo de repuestos" %}</div>
+                                <div class="font-medium">${{ reparacion.costo_repuestos }}</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">{% trans "Total" %}</div>
+                                <div class="font-medium text-lg">${{ reparacion.total }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Fechas -->
+                <div>
+                    <h2 class="text-lg font-medium mb-3">{% trans "Fechas" %}</h2>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <div class="text-sm text-gray-500">{% trans "Fecha de recepción" %}</div>
+                                <div class="font-medium">{{ reparacion.fecha_recepcion|date:"d/m/Y" }}</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">{% trans "Fecha estimada de entrega" %}</div>
+                                <div class="font-medium">{{ reparacion.fecha_estimada_entrega|date:"d/m/Y"|default:"-" }}</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">{% trans "Fecha de entrega" %}</div>
+                                <div class="font-medium">{{ reparacion.fecha_entrega|date:"d/m/Y"|default:"-" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

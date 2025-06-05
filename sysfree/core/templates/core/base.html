@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+{% load static %}
+{% load i18n %}
+<html lang="{{ LANGUAGE_CODE }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SysFree{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'core/css/styles.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header>
+        {% if user.is_authenticated %}
+        <nav>
+            <div class="logo">
+                <a href="{% url 'core:dashboard' %}">SysFree</a>
+            </div>
+            <div class="menu">
+                <ul>
+                    <li><a href="{% url 'core:dashboard' %}">{% trans 'Dashboard' %}</a></li>
+                    {% if user.is_staff %}
+                    <li><a href="{% url 'admin:index' %}">{% trans 'Administración' %}</a></li>
+                    {% endif %}
+                    <li class="dropdown">
+                        <a href="#">{{ user.get_full_name|default:user.email }}</a>
+                        <div class="dropdown-content">
+                            <a href="{% url 'core:profile' %}">{% trans 'Mi Perfil' %}</a>
+                            <a href="{% url 'core:password_change' %}">{% trans 'Cambiar Contraseña' %}</a>
+                            <form method="post" action="{% url 'core:logout' %}">
+                                {% csrf_token %}
+                                <button type="submit">{% trans 'Cerrar Sesión' %}</button>
+                            </form>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        {% endif %}
+    </header>
+
+    <main>
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="message {{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <p>&copy; {% now "Y" %} SysFree. {% trans 'Todos los derechos reservados.' %}</p>
+        </div>
+    </footer>
+
+    <script src="{% static 'core/js/main.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

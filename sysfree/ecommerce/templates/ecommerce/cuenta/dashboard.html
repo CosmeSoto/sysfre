@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Mi Cuenta" %} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex flex-col md:flex-row">
+        <!-- Menú lateral -->
+        <div class="w-full md:w-1/4 mb-6 md:mb-0 md:pr-6">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center mb-6">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-blue-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h2 class="text-lg font-semibold">{{ request.user.get_full_name }}</h2>
+                        <p class="text-sm text-gray-600">{{ request.user.email }}</p>
+                    </div>
+                </div>
+                
+                <nav>
+                    <ul>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_dashboard' %}" class="flex items-center py-2 px-4 bg-blue-50 text-blue-700 rounded-md">
+                                <i class="fas fa-tachometer-alt w-5"></i>
+                                <span class="ml-2">{% trans "Panel de control" %}</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_pedidos' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md">
+                                <i class="fas fa-shopping-bag w-5"></i>
+                                <span class="ml-2">{% trans "Mis pedidos" %}</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_reparaciones' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md">
+                                <i class="fas fa-tools w-5"></i>
+                                <span class="ml-2">{% trans "Mis reparaciones" %}</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_direcciones' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md">
+                                <i class="fas fa-map-marker-alt w-5"></i>
+                                <span class="ml-2">{% trans "Mis direcciones" %}</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_perfil' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md">
+                                <i class="fas fa-user-edit w-5"></i>
+                                <span class="ml-2">{% trans "Mi perfil" %}</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'logout' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md text-red-600">
+                                <i class="fas fa-sign-out-alt w-5"></i>
+                                <span class="ml-2">{% trans "Cerrar sesión" %}</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        
+        <!-- Contenido principal -->
+        <div class="w-full md:w-3/4">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h1 class="text-2xl font-bold mb-4">{% trans "Bienvenido" %}, {{ cliente.nombre }}</h1>
+                <p class="text-gray-600 mb-4">
+                    {% trans "Desde tu panel de control puedes ver tus pedidos recientes, gestionar tus direcciones de envío y editar tu información personal." %}
+                </p>
+            </div>
+            
+            <!-- Pedidos recientes -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">{% trans "Pedidos recientes" %}</h2>
+                    <a href="{% url 'ecommerce:cuenta_pedidos' %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                        {% trans "Ver todos" %} <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+                
+                {% if pedidos_recientes %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {% trans "Pedido" %}
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {% trans "Fecha" %}
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {% trans "Estado" %}
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {% trans "Total" %}
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {% trans "Acciones" %}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for pedido in pedidos_recientes %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">{{ pedido.numero }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-500">{{ pedido.fecha|date:"d/m/Y H:i" }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                        {% if pedido.estado == 'pendiente' %}bg-yellow-100 text-yellow-800
+                                        {% elif pedido.estado == 'pagado' %}bg-green-100 text-green-800
+                                        {% elif pedido.estado == 'enviado' %}bg-blue-100 text-blue-800
+                                        {% elif pedido.estado == 'entregado' %}bg-purple-100 text-purple-800
+                                        {% elif pedido.estado == 'cancelado' %}bg-red-100 text-red-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ pedido.get_estado_display }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">${{ pedido.total }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <a href="{% url 'ecommerce:cuenta_pedido_detail' pedido.numero %}" class="text-blue-600 hover:text-blue-900">
+                                        {% trans "Ver detalles" %}
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-gray-500">{% trans "No tienes pedidos recientes." %}</p>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Reparaciones recientes -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold">{% trans "Reparaciones recientes" %}</h2>
+                    <a href="{% url 'ecommerce:cuenta_reparaciones' %}" class="text-blue-600 hover:text-blue-800 text-sm">
+                        {% trans "Ver todas" %} <i class="fas fa-arrow-right ml-1"></i>
+                    </a>
+                </div>
+                
+                {% if reparaciones_recientes %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {% trans "Número" %}
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {% trans "Equipo" %}
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {% trans "Fecha" %}
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {% trans "Estado" %}
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {% trans "Acciones" %}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for reparacion in reparaciones_recientes %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">{{ reparacion.numero }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">{{ reparacion.tipo_equipo }}</div>
+                                    <div class="text-xs text-gray-500">{{ reparacion.marca }} {{ reparacion.modelo }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-500">{{ reparacion.fecha_recepcion|date:"d/m/Y" }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                        {% if reparacion.estado == 'recibido' %}bg-blue-100 text-blue-800
+                                        {% elif reparacion.estado == 'diagnostico' %}bg-yellow-100 text-yellow-800
+                                        {% elif reparacion.estado == 'espera_repuestos' %}bg-orange-100 text-orange-800
+                                        {% elif reparacion.estado == 'en_reparacion' %}bg-purple-100 text-purple-800
+                                        {% elif reparacion.estado == 'reparado' %}bg-green-100 text-green-800
+                                        {% elif reparacion.estado == 'entregado' %}bg-indigo-100 text-indigo-800
+                                        {% elif reparacion.estado == 'no_reparable' %}bg-red-100 text-red-800
+                                        {% elif reparacion.estado == 'cancelado' %}bg-gray-100 text-gray-800
+                                        {% endif %}">
+                                        {{ reparacion.get_estado_display }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <a href="{% url 'ecommerce:cuenta_reparacion_detail' reparacion.numero %}" class="text-blue-600 hover:text-blue-900">
+                                        {% trans "Ver detalles" %}
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-gray-500">{% trans "No tienes reparaciones recientes." %}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

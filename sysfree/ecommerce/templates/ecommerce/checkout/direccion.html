@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Checkout - Dirección" %} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">{% trans "Checkout" %}</h1>
+        <div class="flex items-center">
+            <span class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold">1</span>
+            <span class="mx-2 text-blue-600 font-semibold">{% trans "Dirección" %}</span>
+            <span class="h-1 w-8 bg-gray-300"></span>
+            <span class="bg-gray-300 text-gray-600 w-8 h-8 rounded-full flex items-center justify-center font-bold mx-2">2</span>
+            <span class="mx-2 text-gray-600">{% trans "Envío" %}</span>
+            <span class="h-1 w-8 bg-gray-300"></span>
+            <span class="bg-gray-300 text-gray-600 w-8 h-8 rounded-full flex items-center justify-center font-bold mx-2">3</span>
+            <span class="mx-2 text-gray-600">{% trans "Pago" %}</span>
+            <span class="h-1 w-8 bg-gray-300"></span>
+            <span class="bg-gray-300 text-gray-600 w-8 h-8 rounded-full flex items-center justify-center font-bold mx-2">4</span>
+            <span class="mx-2 text-gray-600">{% trans "Confirmar" %}</span>
+        </div>
+    </div>
+    
+    <div class="flex flex-col lg:flex-row gap-8">
+        <!-- Formulario de direcciones -->
+        <div class="w-full lg:w-2/3">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">{% trans "Selecciona tus direcciones" %}</h2>
+                
+                <form method="post" action="{% url 'ecommerce:checkout_direccion' %}">
+                    {% csrf_token %}
+                    
+                    <!-- Dirección de facturación -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-medium mb-3">{% trans "Dirección de facturación" %}</h3>
+                        
+                        {% if direcciones %}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {% for direccion in direcciones %}
+                            <div class="border rounded-lg p-4 relative">
+                                <input type="radio" name="direccion_facturacion" id="facturacion_{{ direccion.id }}" value="{{ direccion.id }}" class="absolute top-4 right-4" {% if forloop.first %}checked{% endif %}>
+                                <label for="facturacion_{{ direccion.id }}" class="block cursor-pointer">
+                                    <div class="font-medium">{{ direccion.nombre }}</div>
+                                    <div class="text-sm text-gray-600">
+                                        {{ direccion.direccion }}<br>
+                                        {{ direccion.ciudad }}, {{ direccion.provincia }}<br>
+                                        {{ direccion.codigo_postal }}<br>
+                                        {{ direccion.get_pais_display }}
+                                    </div>
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-yellow-700">
+                                        {% trans "No tienes direcciones guardadas. Por favor, añade una dirección." %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="{% url 'ecommerce:cuenta_direccion_agregar' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                            <i class="fas fa-plus mr-2"></i> {% trans "Añadir dirección" %}
+                        </a>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Dirección de envío -->
+                    <div class="mb-6">
+                        <div class="flex items-center mb-3">
+                            <h3 class="text-lg font-medium">{% trans "Dirección de envío" %}</h3>
+                            <div class="ml-4">
+                                <input type="checkbox" name="misma_direccion" id="misma_direccion" class="form-checkbox h-4 w-4 text-blue-600">
+                                <label for="misma_direccion" class="ml-2 text-sm text-gray-600">
+                                    {% trans "Usar la misma dirección para el envío" %}
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div id="direcciones_envio">
+                            {% if direcciones %}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {% for direccion in direcciones %}
+                                <div class="border rounded-lg p-4 relative">
+                                    <input type="radio" name="direccion_envio" id="envio_{{ direccion.id }}" value="{{ direccion.id }}" class="absolute top-4 right-4" {% if forloop.first %}checked{% endif %}>
+                                    <label for="envio_{{ direccion.id }}" class="block cursor-pointer">
+                                        <div class="font-medium">{{ direccion.nombre }}</div>
+                                        <div class="text-sm text-gray-600">
+                                            {{ direccion.direccion }}<br>
+                                            {{ direccion.ciudad }}, {{ direccion.provincia }}<br>
+                                            {{ direccion.codigo_postal }}<br>
+                                            {{ direccion.get_pais_display }}
+                                        </div>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between mt-8">
+                        <a href="{% url 'ecommerce:carrito_detail' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            <i class="fas fa-arrow-left mr-2"></i> {% trans "Volver al carrito" %}
+                        </a>
+                        <button type="submit" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                            {% trans "Continuar" %} <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Resumen del pedido -->
+        <div class="w-full lg:w-1/3">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4">{% trans "Resumen del pedido" %}</h2>
+                
+                <div class="mb-4">
+                    <div class="max-h-60 overflow-y-auto">
+                        {% for item in carrito.items.all %}
+                        <div class="flex items-center py-2 border-b">
+                            <div class="flex-shrink-0 h-10 w-10">
+                                {% if not item.es_servicio %}
+                                <img class="h-10 w-10 rounded-full object-cover" src="{{ item.producto.imagen.url|default:'https://via.placeholder.com/40' }}" alt="{{ item.producto.nombre }}">
+                                {% else %}
+                                <div class="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-tools text-blue-600"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <div class="text-sm font-medium text-gray-900">
+                                    {% if item.es_servicio %}
+                                        {{ item.item }}
+                                    {% else %}
+                                        {{ item.producto.nombre }}
+                                    {% endif %}
+                                </div>
+                                <div class="text-sm text-gray-500">
+                                    {{ item.cantidad }} x ${{ item.precio_unitario }}
+                                </div>
+                            </div>
+                            <div class="text-sm font-medium text-gray-900">${{ item.subtotal }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="border-t border-gray-200 pt-4">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-gray-600">{% trans "Subtotal" %}</span>
+                        <span class="font-medium">${{ carrito.subtotal }}</span>
+                    </div>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-gray-600">{% trans "Impuestos" %}</span>
+                        <span class="font-medium">${{ carrito.total_impuestos }}</span>
+                    </div>
+                    <div class="border-t border-gray-200 mt-2 pt-2 flex justify-between">
+                        <span class="text-lg font-semibold">{% trans "Total" %}</span>
+                        <span class="text-lg font-semibold">${{ carrito.total }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const mismaDireccionCheckbox = document.getElementById('misma_direccion');
+        const direccionesEnvioDiv = document.getElementById('direcciones_envio');
+        
+        mismaDireccionCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                direccionesEnvioDiv.style.display = 'none';
+            } else {
+                direccionesEnvioDiv.style.display = 'block';
+            }
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}

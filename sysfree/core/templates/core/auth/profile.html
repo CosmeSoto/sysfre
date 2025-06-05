@@ -1,0 +1,95 @@
+{% extends "core/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans 'Mi Perfil' %} | SysFree{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <h1>{% trans 'Mi Perfil' %}</h1>
+    
+    <div class="profile-content">
+        <div class="profile-image">
+            {% if user.foto %}
+            <img src="{{ user.foto.url }}" alt="{{ user.get_full_name }}">
+            {% else %}
+            <div class="profile-placeholder">
+                {{ user.get_short_name|first|upper }}
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="profile-info">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="error-message">
+                    {% for error in form.non_field_errors %}
+                    {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                        <div class="field-error">{{ form.email.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.nombres.id_for_label }}">{{ form.nombres.label }}</label>
+                        {{ form.nombres }}
+                        {% if form.nombres.errors %}
+                        <div class="field-error">{{ form.nombres.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.apellidos.id_for_label }}">{{ form.apellidos.label }}</label>
+                        {{ form.apellidos }}
+                        {% if form.apellidos.errors %}
+                        <div class="field-error">{{ form.apellidos.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="{{ form.telefono.id_for_label }}">{{ form.telefono.label }}</label>
+                        {{ form.telefono }}
+                        {% if form.telefono.errors %}
+                        <div class="field-error">{{ form.telefono.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.fecha_nacimiento.id_for_label }}">{{ form.fecha_nacimiento.label }}</label>
+                        {{ form.fecha_nacimiento }}
+                        {% if form.fecha_nacimiento.errors %}
+                        <div class="field-error">{{ form.fecha_nacimiento.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.foto.id_for_label }}">{{ form.foto.label }}</label>
+                    {{ form.foto }}
+                    {% if form.foto.errors %}
+                    <div class="field-error">{{ form.foto.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">{% trans 'Guardar Cambios' %}</button>
+                    <a href="{% url 'core:password_change' %}" class="btn btn-secondary">{% trans 'Cambiar Contraseña' %}</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

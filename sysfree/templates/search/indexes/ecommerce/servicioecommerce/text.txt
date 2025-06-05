@@ -1,0 +1,6 @@
+{{ object.servicio.nombre }}
+{{ object.descripcion_corta }}
+{{ object.descripcion_larga }}
+{{ object.servicio.tipo }}
+servicio reparación mantenimiento
+{% if object.destacado %}destacado recomendado{% endif %}

@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{{ servicio.servicio.nombre }} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex flex-col md:flex-row">
+        <!-- Información del servicio -->
+        <div class="w-full md:w-2/3 pr-0 md:pr-8">
+            <nav class="text-sm mb-4">
+                <a href="{% url 'ecommerce:inicio' %}" class="text-blue-600 hover:text-blue-800">{% trans "Inicio" %}</a> &gt;
+                <a href="{% url 'ecommerce:servicios_lista' %}" class="text-blue-600 hover:text-blue-800">{% trans "Servicios" %}</a> &gt;
+                <span class="text-gray-600">{{ servicio.servicio.nombre }}</span>
+            </nav>
+            
+            <h1 class="text-3xl font-bold mb-2">{{ servicio.servicio.nombre }}</h1>
+            
+            <div class="flex items-center mb-4">
+                {% if servicio.oferta %}
+                <span class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full mr-2">
+                    -{{ servicio.porcentaje_descuento }}%
+                </span>
+                {% endif %}
+                {% if servicio.nuevo %}
+                <span class="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full mr-2">
+                    {% trans "Nuevo" %}
+                </span>
+                {% endif %}
+                <span class="text-gray-600">
+                    {% trans "Tipo:" %} {{ servicio.servicio.get_tipo_display }}
+                </span>
+            </div>
+            
+            <div class="mb-6">
+                {% if servicio.oferta %}
+                <span class="text-gray-500 line-through text-xl">${{ servicio.servicio.precio }}</span>
+                <span class="text-3xl font-bold text-blue-600 ml-2">${{ servicio.precio_actual }}</span>
+                {% else %}
+                <span class="text-3xl font-bold text-blue-600">${{ servicio.precio_actual }}</span>
+                {% endif %}
+            </div>
+            
+            <div class="mb-6">
+                <h2 class="text-xl font-semibold mb-2">{% trans "Descripción" %}</h2>
+                <div class="prose max-w-none">
+                    {{ servicio.descripcion_larga|safe }}
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <h2 class="text-xl font-semibold mb-2">{% trans "Detalles del servicio" %}</h2>
+                <ul class="list-disc pl-5 space-y-2">
+                    <li>{% trans "Tiempo estimado:" %} {{ servicio.servicio.tiempo_estimado }} {% trans "horas" %}</li>
+                    <li>{% trans "Requiere diagnóstico previo:" %} 
+                        {% if servicio.servicio.requiere_diagnostico_previo %}
+                            {% trans "Sí" %}
+                        {% else %}
+                            {% trans "No" %}
+                        {% endif %}
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Formulario de solicitud -->
+        <div class="w-full md:w-1/3 mt-8 md:mt-0">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-semibold mb-4">{% trans "Solicitar este servicio" %}</h2>
+                
+                <form method="post" action="{% url 'ecommerce:agregar_al_carrito' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="servicio_id" value="{{ servicio.id }}">
+                    <input type="hidden" name="es_servicio" value="True">
+                    
+                    <div class="mb-4">
+                        <label for="cantidad" class="block text-sm font-medium text-gray-700 mb-1">
+                            {% trans "Cantidad" %}
+                        </label>
+                        <input type="number" id="cantidad" name="cantidad" value="1" min="1" max="10" 
+                               class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    
+                    {% if servicio.servicio.requiere_diagnostico_previo %}
+                    <div class="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                        <p class="text-sm text-yellow-700">
+                            {% trans "Este servicio requiere un diagnóstico previo. Nuestro equipo técnico se pondrá en contacto contigo para coordinar los detalles." %}
+                        </p>
+                    </div>
+                    {% endif %}
+                    
+                    <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded">
+                        {% trans "Añadir al carrito" %}
+                    </button>
+                </form>
+                
+                <div class="mt-4 text-sm text-gray-600">
+                    <p class="flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        {% trans "Tiempo estimado:" %} {{ servicio.servicio.tiempo_estimado }} {% trans "horas" %}
+                    </p>
+                    <p class="flex items-center mt-2">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                        {% trans "Garantía de satisfacción" %}
+                    </p>
+                    <p class="flex items-center mt-2">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                        </svg>
+                        {% trans "Pago seguro" %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Servicios relacionados -->
+    {% if servicios_relacionados %}
+    <div class="mt-12">
+        <h2 class="text-2xl font-bold mb-6">{% trans "Servicios relacionados" %}</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {% for servicio_rel in servicios_relacionados %}
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <div class="p-4">
+                    <h3 class="text-lg font-semibold">{{ servicio_rel.servicio.nombre }}</h3>
+                    <p class="text-gray-600 mt-2">{{ servicio_rel.descripcion_corta|truncatechars:80 }}</p>
+                    <div class="mt-4 flex justify-between items-center">
+                        <span class="text-lg font-bold text-blue-600">${{ servicio_rel.precio_actual }}</span>
+                        <a href="{% url 'ecommerce:servicio_detalle' servicio_rel.slug %}" class="text-blue-600 hover:text-blue-800">
+                            {% trans "Ver detalles" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

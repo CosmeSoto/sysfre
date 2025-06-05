@@ -1,0 +1,15 @@
+{% extends "core/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans 'Página no encontrada' %} | SysFree{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-box">
+        <h1>404</h1>
+        <h2>{% trans 'Página no encontrada' %}</h2>
+        <p>{% trans 'Lo sentimos, la página que estás buscando no existe o ha sido movida.' %}</p>
+        <a href="{% url 'core:dashboard' %}" class="btn btn-primary">{% trans 'Volver al inicio' %}</a>
+    </div>
+</div>
+{% endblock %}

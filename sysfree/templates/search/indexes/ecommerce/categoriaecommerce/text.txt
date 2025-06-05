@@ -1,0 +1,3 @@
+{{ object.nombre }}
+{{ object.descripcion }}
+categoría

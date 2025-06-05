@@ -1,0 +1,15 @@
+{% extends "core/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans 'Solicitud incorrecta' %} | SysFree{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-box">
+        <h1>400</h1>
+        <h2>{% trans 'Solicitud incorrecta' %}</h2>
+        <p>{% trans 'Lo sentimos, la solicitud enviada es incorrecta o está mal formada.' %}</p>
+        <a href="{% url 'core:dashboard' %}" class="btn btn-primary">{% trans 'Volver al inicio' %}</a>
+    </div>
+</div>
+{% endblock %}

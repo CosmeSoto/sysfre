@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Búsqueda Avanzada" %} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6">{% trans "Búsqueda Avanzada" %}</h1>
+    
+    <div class="flex flex-col lg:flex-row gap-8">
+        <!-- Filtros -->
+        <div class="w-full lg:w-1/4">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4">{% trans "Filtros" %}</h2>
+                
+                <form method="get" action="{% url 'ecommerce:busqueda_avanzada' %}">
+                    <!-- Búsqueda por texto -->
+                    <div class="mb-4">
+                        <label for="q" class="block text-sm font-medium text-gray-700 mb-1">{% trans "Buscar" %}</label>
+                        <input type="text" name="q" id="q" value="{{ query }}" placeholder="{% trans 'Buscar productos, servicios...' %}" 
+                               class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    
+                    <!-- Tipo de resultado -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">{% trans "Tipo de resultado" %}</label>
+                        <div class="space-y-2">
+                            <div class="flex items-center">
+                                <input type="radio" name="tipo" id="tipo_todos" value="todos" {% if tipo == 'todos' or not tipo %}checked{% endif %}
+                                       class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <label for="tipo_todos" class="ml-2 text-sm text-gray-700">{% trans "Todos" %}</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="radio" name="tipo" id="tipo_productos" value="productos" {% if tipo == 'productos' %}checked{% endif %}
+                                       class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <label for="tipo_productos" class="ml-2 text-sm text-gray-700">{% trans "Solo productos" %}</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="radio" name="tipo" id="tipo_servicios" value="servicios" {% if tipo == 'servicios' %}checked{% endif %}
+                                       class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <label for="tipo_servicios" class="ml-2 text-sm text-gray-700">{% trans "Solo servicios" %}</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Categoría -->
+                    <div class="mb-4">
+                        <label for="categoria" class="block text-sm font-medium text-gray-700 mb-1">{% trans "Categoría" %}</label>
+                        <select name="categoria" id="categoria" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <option value="">{% trans "Todas las categorías" %}</option>
+                            {% for cat in todas_categorias %}
+                            <option value="{{ cat.slug }}" {% if categoria_seleccionada == cat.slug %}selected{% endif %}>{{ cat.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Precio -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">{% trans "Precio" %}</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <input type="number" name="precio_min" id="precio_min" placeholder="{% trans 'Mínimo' %}" value="{{ precio_min }}" 
+                                       class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <input type="number" name="precio_max" id="precio_max" placeholder="{% trans 'Máximo' %}" value="{{ precio_max }}" 
+                                       class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Disponibilidad -->
+                    <div class="mb-4">
+                        <div class="flex items-center">
+                            <input type="checkbox" name="disponible" id="disponible" value="1" {% if disponible %}checked{% endif %}
+                                   class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                            <label for="disponible" class="ml-2 text-sm text-gray-700">{% trans "Solo disponibles" %}</label>
+                        </div>
+                    </div>
+                    
+                    <!-- Ofertas -->
+                    <div class="mb-6">
+                        <div class="flex items-center">
+                            <input type="checkbox" name="oferta" id="oferta" value="1" {% if oferta %}checked{% endif %}
+                                   class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                            <label for="oferta" class="ml-2 text-sm text-gray-700">{% trans "Solo ofertas" %}</label>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between">
+                        <a href="{% url 'ecommerce:busqueda_avanzada' %}" class="text-blue-600 hover:text-blue-800">
+                            {% trans "Limpiar filtros" %}
+                        </a>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                            {% trans "Buscar" %}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Resultados -->
+        <div class="w-full lg:w-3/4">
+            <!-- Resumen de resultados -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-lg font-semibold mb-2">{% trans "Resultados de búsqueda" %}</h2>
+                {% if query %}
+                <p class="text-gray-600">
+                    {% blocktrans with count=total_productos|add:total_servicios|add:total_categorias %}
+                    Se encontraron {{ count }} resultados para "{{ query }}"
+                    {% endblocktrans %}
+                </p>
+                {% else %}
+                <p class="text-gray-600">
+                    {% trans "Utiliza los filtros para encontrar lo que buscas" %}
+                </p>
+                {% endif %}
+            </div>
+            
+            <!-- Categorías encontradas -->
+            {% if categorias %}
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-lg font-semibold mb-4">{% trans "Categorías" %} ({{ total_categorias }})</h2>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {% for categoria in categorias %}
+                    <a href="{% url 'ecommerce:categoria_detail' categoria.slug %}" class="block p-4 border rounded-lg hover:bg-blue-50 transition-colors">
+                        <h3 class="font-medium">{{ categoria.nombre }}</h3>
+                        <p class="text-sm text-gray-500 mt-1">{{ categoria.descripcion|truncatechars:50 }}</p>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Productos encontrados -->
+            {% if productos %}
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-lg font-semibold mb-4">{% trans "Productos" %} ({{ total_productos }})</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {% for producto in productos %}
+                    <div class="border rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                        <a href="{% url 'ecommerce:producto_detail' producto.slug %}">
+                            <img src="{{ producto.producto.imagen.url|default:'https://via.placeholder.com/300x200' }}" 
+                                 alt="{{ producto.producto.nombre }}" 
+                                 class="w-full h-48 object-cover">
+                        </a>
+                        <div class="p-4">
+                            <a href="{% url 'ecommerce:producto_detail' producto.slug %}" class="block text-lg font-semibold hover:text-blue-600">
+                                {{ producto.producto.nombre }}
+                            </a>
+                            <p class="text-gray-600 mt-1 text-sm">{{ producto.descripcion_corta|truncatechars:60 }}</p>
+                            <div class="mt-4 flex justify-between items-center">
+                                {% if producto.oferta %}
+                                <div>
+                                    <span class="text-gray-500 line-through">${{ producto.producto.precio_venta }}</span>
+                                    <span class="text-lg font-bold text-red-600 ml-2">${{ producto.precio_actual }}</span>
+                                </div>
+                                {% else %}
+                                <span class="text-lg font-bold text-gray-900">${{ producto.precio_actual }}</span>
+                                {% endif %}
+                                <form method="post" action="{% url 'ecommerce:agregar_al_carrito' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="producto_id" value="{{ producto.producto.id }}">
+                                    <input type="hidden" name="cantidad" value="1">
+                                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded-full text-sm">
+                                        <i class="fas fa-shopping-cart mr-1"></i> {% trans "Añadir" %}
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                {% if total_productos > 20 %}
+                <div class="mt-4 text-center">
+                    <p class="text-gray-600">
+                        {% trans "Mostrando 20 de" %} {{ total_productos }} {% trans "productos" %}
+                    </p>
+                    <a href="{% url 'ecommerce:producto_list' %}?q={{ query }}" class="text-blue-600 hover:text-blue-800">
+                        {% trans "Ver todos los productos" %}
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <!-- Servicios encontrados -->
+            {% if servicios %}
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4">{% trans "Servicios" %} ({{ total_servicios }})</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {% for servicio in servicios %}
+                    <div class="border rounded-lg p-6 hover:shadow-md transition-shadow">
+                        <h3 class="text-xl font-semibold mb-2">{{ servicio.servicio.nombre }}</h3>
+                        <p class="text-gray-600 mb-4">{{ servicio.descripcion_corta|truncatechars:100 }}</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xl font-bold text-gray-900">${{ servicio.servicio.precio }}</span>
+                            <a href="{% url 'ecommerce:servicio_detalle' servicio.slug %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                {% trans "Ver detalles" %}
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                {% if total_servicios > 10 %}
+                <div class="mt-4 text-center">
+                    <p class="text-gray-600">
+                        {% trans "Mostrando 10 de" %} {{ total_servicios }} {% trans "servicios" %}
+                    </p>
+                    <a href="{% url 'ecommerce:servicios_lista' %}?q={{ query }}" class="text-blue-600 hover:text-blue-800">
+                        {% trans "Ver todos los servicios" %}
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <!-- Sin resultados -->
+            {% if not productos and not servicios and not categorias and query %}
+            <div class="bg-white rounded-lg shadow-md p-8 text-center">
+                <div class="text-gray-400 mb-4">
+                    <i class="fas fa-search text-6xl"></i>
+                </div>
+                <h2 class="text-2xl font-semibold mb-2">{% trans "No se encontraron resultados" %}</h2>
+                <p class="text-gray-600 mb-6">{% trans "No se encontraron resultados para tu búsqueda. Intenta con otros términos o filtros." %}</p>
+                <a href="{% url 'ecommerce:inicio' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                    {% trans "Volver a la tienda" %}
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Pago con PayPal" %} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-3xl mx-auto">
+        <div class="bg-white rounded-lg shadow-md p-6 text-center">
+            <h1 class="text-2xl font-bold mb-6">{% trans "Procesando pago con PayPal" %}</h1>
+            
+            <div class="mb-8">
+                <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mx-auto"></div>
+                <p class="mt-4 text-gray-600">{% trans "Estamos redireccionándote a PayPal para completar el pago..." %}</p>
+            </div>
+            
+            <div class="mb-6">
+                <div class="flex justify-between mb-2">
+                    <span class="text-gray-600">{% trans "Número de pedido:" %}</span>
+                    <span class="font-medium">{{ pedido.numero }}</span>
+                </div>
+                <div class="flex justify-between mb-2">
+                    <span class="text-gray-600">{% trans "Total a pagar:" %}</span>
+                    <span class="font-medium text-lg">${{ pedido.total }}</span>
+                </div>
+            </div>
+            
+            <div class="mt-6">
+                <p class="text-sm text-gray-500">{% trans "Si no eres redirigido automáticamente, haz clic en el botón de abajo:" %}</p>
+                <div class="mt-4">
+                    <div id="paypal-button-container"></div>
+                </div>
+            </div>
+            
+            <div class="mt-6 pt-6 border-t border-gray-200">
+                <div class="flex items-center justify-center mb-4">
+                    <i class="fas fa-lock text-green-600 mr-2"></i>
+                    <span class="text-sm text-gray-600">{% trans "Pago seguro con PayPal" %}</span>
+                </div>
+                <div class="flex justify-center">
+                    <img src="{% static 'img/paypal.png' %}" alt="PayPal" class="h-10">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=USD"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Redirigir automáticamente después de un breve retraso
+        setTimeout(function() {
+            window.location.href = "{{ return_url }}";
+        }, 2000);
+        
+        // Configurar botón de PayPal como respaldo
+        paypal.Buttons({
+            createOrder: function(data, actions) {
+                return actions.order.create({
+                    purchase_units: [{
+                        amount: {
+                            value: '{{ pedido.total }}'
+                        }
+                    }]
+                });
+            },
+            onApprove: function(data, actions) {
+                return actions.order.capture().then(function(details) {
+                    window.location.href = "{{ return_url }}";
+                });
+            },
+            onCancel: function(data) {
+                window.location.href = "{{ cancel_url }}";
+            }
+        }).render('#paypal-button-container');
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Mis Reparaciones" %} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex flex-col md:flex-row">
+        <!-- Menú lateral -->
+        <div class="w-full md:w-1/4 mb-6 md:mb-0 md:pr-6">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center mb-6">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-blue-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h2 class="text-lg font-semibold">{{ request.user.get_full_name }}</h2>
+                        <p class="text-sm text-gray-600">{{ request.user.email }}</p>
+                    </div>
+                </div>
+                
+                <nav>
+                    <ul>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_dashboard' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md">
+                                <i class="fas fa-tachometer-alt w-5"></i>
+                                <span class="ml-2">{% trans "Panel de control" %}</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_pedidos' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md">
+                                <i class="fas fa-shopping-bag w-5"></i>
+                                <span class="ml-2">{% trans "Mis pedidos" %}</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_reparaciones' %}" class="flex items-center py-2 px-4 bg-blue-50 text-blue-700 rounded-md">
+                                <i class="fas fa-tools w-5"></i>
+                                <span class="ml-2">{% trans "Mis reparaciones" %}</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_direcciones' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md">
+                                <i class="fas fa-map-marker-alt w-5"></i>
+                                <span class="ml-2">{% trans "Mis direcciones" %}</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_perfil' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md">
+                                <i class="fas fa-user-edit w-5"></i>
+                                <span class="ml-2">{% trans "Mi perfil" %}</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'logout' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md text-red-600">
+                                <i class="fas fa-sign-out-alt w-5"></i>
+                                <span class="ml-2">{% trans "Cerrar sesión" %}</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        
+        <!-- Contenido principal -->
+        <div class="w-full md:w-3/4">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h1 class="text-2xl font-bold mb-6">{% trans "Mis Reparaciones" %}</h1>
+                
+                {% if reparaciones %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {% trans "Número" %}
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {% trans "Equipo" %}
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {% trans "Fecha" %}
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {% trans "Estado" %}
+                                </th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {% trans "Acciones" %}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for reparacion in reparaciones %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">{{ reparacion.numero }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">{{ reparacion.tipo_equipo }}</div>
+                                    <div class="text-xs text-gray-500">{{ reparacion.marca }} {{ reparacion.modelo }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-500">{{ reparacion.fecha_recepcion|date:"d/m/Y" }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                        {% if reparacion.estado == 'recibido' %}bg-blue-100 text-blue-800
+                                        {% elif reparacion.estado == 'diagnostico' %}bg-yellow-100 text-yellow-800
+                                        {% elif reparacion.estado == 'espera_repuestos' %}bg-orange-100 text-orange-800
+                                        {% elif reparacion.estado == 'en_reparacion' %}bg-purple-100 text-purple-800
+                                        {% elif reparacion.estado == 'reparado' %}bg-green-100 text-green-800
+                                        {% elif reparacion.estado == 'entregado' %}bg-indigo-100 text-indigo-800
+                                        {% elif reparacion.estado == 'no_reparable' %}bg-red-100 text-red-800
+                                        {% elif reparacion.estado == 'cancelado' %}bg-gray-100 text-gray-800
+                                        {% endif %}">
+                                        {{ reparacion.get_estado_display }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <a href="{% url 'ecommerce:cuenta_reparacion_detail' reparacion.numero %}" class="text-blue-600 hover:text-blue-900">
+                                        {% trans "Ver detalles" %}
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Paginación -->
+                {% if reparaciones.has_other_pages %}
+                <div class="flex justify-center mt-6">
+                    <nav class="inline-flex rounded-md shadow">
+                        {% if reparaciones.has_previous %}
+                        <a href="?page={{ reparaciones.previous_page_number }}" class="py-2 px-4 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            {% trans "Anterior" %}
+                        </a>
+                        {% endif %}
+                        
+                        <span class="py-2 px-4 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-700">
+                            {{ reparaciones.number }} / {{ reparaciones.paginator.num_pages }}
+                        </span>
+                        
+                        {% if reparaciones.has_next %}
+                        <a href="?page={{ reparaciones.next_page_number }}" class="py-2 px-4 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            {% trans "Siguiente" %}
+                        </a>
+                        {% endif %}
+                    </nav>
+                </div>
+                {% endif %}
+                
+                {% else %}
+                <div class="text-center py-8">
+                    <div class="text-gray-400 mb-4">
+                        <i class="fas fa-tools text-6xl"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold mb-2">{% trans "No tienes reparaciones" %}</h2>
+                    <p class="text-gray-600 mb-6">{% trans "Aún no has solicitado ningún servicio de reparación." %}</p>
+                    <a href="{% url 'ecommerce:servicios_lista' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                        {% trans "Ver servicios" %} <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

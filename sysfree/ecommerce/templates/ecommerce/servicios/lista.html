@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Servicios de Reparación" %} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6">{% trans "Servicios de Reparación" %}</h1>
+    
+    <!-- Filtros -->
+    <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+        <h2 class="text-xl font-semibold mb-4">{% trans "Filtrar por" %}</h2>
+        <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">{% trans "Categoría" %}</label>
+                <select name="categoria" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">{% trans "Todas las categorías" %}</option>
+                    {% for categoria in categorias %}
+                    <option value="{{ categoria.slug }}" {% if request.GET.categoria == categoria.slug %}selected{% endif %}>
+                        {{ categoria.nombre }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">{% trans "Tipo" %}</label>
+                <select name="tipo" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">{% trans "Todos los tipos" %}</option>
+                    <option value="diagnostico" {% if request.GET.tipo == 'diagnostico' %}selected{% endif %}>{% trans "Diagnóstico" %}</option>
+                    <option value="reparacion" {% if request.GET.tipo == 'reparacion' %}selected{% endif %}>{% trans "Reparación" %}</option>
+                    <option value="mantenimiento" {% if request.GET.tipo == 'mantenimiento' %}selected{% endif %}>{% trans "Mantenimiento" %}</option>
+                    <option value="instalacion" {% if request.GET.tipo == 'instalacion' %}selected{% endif %}>{% trans "Instalación" %}</option>
+                    <option value="configuracion" {% if request.GET.tipo == 'configuracion' %}selected{% endif %}>{% trans "Configuración" %}</option>
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                    {% trans "Filtrar" %}
+                </button>
+                <a href="{% url 'ecommerce:servicios_lista' %}" class="ml-2 text-blue-600 hover:text-blue-800">
+                    {% trans "Limpiar filtros" %}
+                </a>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Lista de servicios -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for servicio in servicios %}
+        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="p-4">
+                {% if servicio.oferta %}
+                <span class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                    -{{ servicio.porcentaje_descuento }}%
+                </span>
+                {% endif %}
+                {% if servicio.nuevo %}
+                <span class="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full ml-2">
+                    {% trans "Nuevo" %}
+                </span>
+                {% endif %}
+                <h3 class="text-xl font-semibold mt-2">{{ servicio.servicio.nombre }}</h3>
+                <p class="text-gray-600 mt-2">{{ servicio.descripcion_corta|truncatechars:100 }}</p>
+                <div class="mt-4 flex justify-between items-center">
+                    <div>
+                        {% if servicio.oferta %}
+                        <span class="text-gray-500 line-through">${{ servicio.servicio.precio }}</span>
+                        <span class="text-xl font-bold text-blue-600">${{ servicio.precio_actual }}</span>
+                        {% else %}
+                        <span class="text-xl font-bold text-blue-600">${{ servicio.precio_actual }}</span>
+                        {% endif %}
+                    </div>
+                    <a href="{% url 'ecommerce:servicio_detalle' servicio.slug %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        {% trans "Ver detalles" %}
+                    </a>
+                </div>
+                <div class="mt-2 text-sm text-gray-500">
+                    <span>{% trans "Tiempo estimado:" %} {{ servicio.servicio.tiempo_estimado }} {% trans "horas" %}</span>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-3 text-center py-8">
+            <p class="text-gray-500 text-lg">{% trans "No se encontraron servicios que coincidan con los filtros seleccionados." %}</p>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Paginación -->
+    {% if is_paginated %}
+    <div class="flex justify-center mt-8">
+        <nav class="inline-flex rounded-md shadow">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="py-2 px-4 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                {% trans "Anterior" %}
+            </a>
+            {% endif %}
+            
+            <span class="py-2 px-4 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-700">
+                {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+            </span>
+            
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" class="py-2 px-4 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                {% trans "Siguiente" %}
+            </a>
+            {% endif %}
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "core/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans 'Configuraciones del Sistema' %} | SysFree{% endblock %}
+
+{% block content %}
+<div class="config-container">
+    <h1>{% trans 'Configuraciones del Sistema' %}</h1>
+    
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>{% trans 'Clave' %}</th>
+                    <th>{% trans 'Valor' %}</th>
+                    <th>{% trans 'Tipo' %}</th>
+                    <th>{% trans 'Descripción' %}</th>
+                    <th>{% trans 'Acciones' %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for config in configuraciones %}
+                <tr>
+                    <td>{{ config.clave }}</td>
+                    <td>{{ config.valor }}</td>
+                    <td>{{ config.get_tipo_display }}</td>
+                    <td>{{ config.descripcion }}</td>
+                    <td>
+                        <a href="{% url 'core:configuracion_edit' config.pk %}" class="btn btn-sm">
+                            {% trans 'Editar' %}
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5">{% trans 'No hay configuraciones disponibles.' %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

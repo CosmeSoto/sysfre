@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Comparación de Productos" %} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6">{% trans "Comparación de Productos" %}</h1>
+    
+    {% if productos %}
+    <div class="bg-white rounded-lg shadow-md overflow-hidden mb-6">
+        <div class="p-4 bg-gray-50 flex justify-between items-center">
+            <h2 class="text-lg font-semibold">{% trans "Productos seleccionados" %}</h2>
+            <form method="post" action="{% url 'ecommerce:limpiar_comparacion' %}">
+                {% csrf_token %}
+                <button type="submit" class="text-red-600 hover:text-red-800 text-sm font-medium">
+                    <i class="fas fa-trash-alt mr-1"></i> {% trans "Limpiar comparación" %}
+                </button>
+            </form>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "Característica" %}
+                        </th>
+                        {% for producto in productos %}
+                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {{ producto.nombre }}
+                            <form method="post" action="{% url 'ecommerce:eliminar_de_comparacion' producto.id %}" class="inline ml-2">
+                                {% csrf_token %}
+                                <button type="submit" class="text-red-600 hover:text-red-800">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
+                        </th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    <!-- Imagen -->
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {% trans "Imagen" %}
+                        </td>
+                        {% for producto in productos %}
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <img src="{{ producto.imagen.url|default:'https://via.placeholder.com/100' }}" alt="{{ producto.nombre }}" class="h-24 w-24 object-cover mx-auto">
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    
+                    <!-- Precio -->
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {% trans "Precio" %}
+                        </td>
+                        {% for producto in productos %}
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if producto.ecommerce.oferta %}
+                            <div class="text-sm text-gray-500 line-through">${{ producto.precio_venta }}</div>
+                            <div class="text-sm font-medium text-red-600">${{ producto.ecommerce.precio_actual }}</div>
+                            {% else %}
+                            <div class="text-sm font-medium text-gray-900">${{ producto.precio_venta }}</div>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    
+                    <!-- Disponibilidad -->
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {% trans "Disponibilidad" %}
+                        </td>
+                        {% for producto in productos %}
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if producto.disponible %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                {% trans "En stock" %}
+                            </span>
+                            {% else %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                {% trans "Agotado" %}
+                            </span>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    
+                    <!-- Categoría -->
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {% trans "Categoría" %}
+                        </td>
+                        {% for producto in productos %}
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ producto.categoria.nombre }}</div>
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    
+                    <!-- Descripción -->
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {% trans "Descripción" %}
+                        </td>
+                        {% for producto in productos %}
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-900">{{ producto.descripcion|truncatechars:150 }}</div>
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    
+                    <!-- Acciones -->
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {% trans "Acciones" %}
+                        </td>
+                        {% for producto in productos %}
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex flex-col space-y-2">
+                                <a href="{% url 'ecommerce:producto_detail' producto.ecommerce.slug %}" class="text-blue-600 hover:text-blue-900 text-sm">
+                                    <i class="fas fa-eye mr-1"></i> {% trans "Ver detalles" %}
+                                </a>
+                                {% if producto.disponible %}
+                                <form method="post" action="{% url 'ecommerce:agregar_al_carrito' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="producto_id" value="{{ producto.id }}">
+                                    <input type="hidden" name="cantidad" value="1">
+                                    <button type="submit" class="text-green-600 hover:text-green-900 text-sm">
+                                        <i class="fas fa-shopping-cart mr-1"></i> {% trans "Añadir al carrito" %}
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <form method="post" action="{% url 'ecommerce:agregar_a_lista_deseos' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="producto_id" value="{{ producto.id }}">
+                                    <button type="submit" class="text-red-600 hover:text-red-900 text-sm">
+                                        <i class="fas fa-heart mr-1"></i> {% trans "Añadir a deseos" %}
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                        {% endfor %}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="bg-white rounded-lg shadow-md p-8 text-center">
+        <div class="text-gray-400 mb-4">
+            <i class="fas fa-balance-scale text-6xl"></i>
+        </div>
+        <h2 class="text-2xl font-semibold mb-4">{% trans "No hay productos para comparar" %}</h2>
+        <p class="text-gray-600 mb-6">{% trans "Añade productos a la comparación para ver sus características lado a lado." %}</p>
+        <a href="{% url 'ecommerce:producto_list' %}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+            {% trans "Explorar productos" %} <i class="fas fa-arrow-right ml-2"></i>
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

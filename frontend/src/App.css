@@ -1,0 +1,132 @@
+/* Estilos generales */
+body {
+  background-color: #f8f9fa;
+}
+
+/* Estilos para el layout */
+.layout {
+  min-height: 100vh;
+}
+
+/* Estilos para la barra lateral */
+.sidebar {
+  height: 100%;
+  min-height: calc(100vh - 56px);
+  position: sticky;
+  top: 56px;
+  z-index: 100;
+  padding-top: 20px;
+  box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.sidebar-header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar .nav-link {
+  color: rgba(255, 255, 255, 0.6);
+  padding: 0.75rem 1rem;
+  margin: 0 0.5rem;
+  border-radius: 0.35rem;
+  transition: all 0.2s;
+}
+
+.sidebar .nav-link:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar .nav-link.active {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.sidebar .nav-link i,
+.sidebar .nav-link svg {
+  margin-right: 0.5rem;
+}
+
+.sidebar-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: auto;
+}
+
+/* Estilos para las tarjetas */
+.card {
+  box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+  border: none;
+  border-radius: 0.35rem;
+}
+
+.card-header {
+  background-color: #f8f9fc;
+  border-bottom: 1px solid #e3e6f0;
+}
+
+/* Estilos para bordes de tarjetas */
+.border-left-primary {
+  border-left: 0.25rem solid #4e73df !important;
+}
+
+.border-left-success {
+  border-left: 0.25rem solid #1cc88a !important;
+}
+
+.border-left-info {
+  border-left: 0.25rem solid #36b9cc !important;
+}
+
+.border-left-warning {
+  border-left: 0.25rem solid #f6c23e !important;
+}
+
+.border-left-danger {
+  border-left: 0.25rem solid #e74a3b !important;
+}
+
+/* Estilos para textos */
+.text-xs {
+  font-size: 0.7rem;
+}
+
+.text-gray-300 {
+  color: #dddfeb !important;
+}
+
+.text-gray-800 {
+  color: #5a5c69 !important;
+}
+
+/* Estilos para tablas */
+.table th {
+  background-color: #f8f9fc;
+  font-weight: 600;
+}
+
+/* Estilos para botones en grupo */
+.btn-group .btn {
+  margin-right: 2px;
+}
+
+/* Estilos para paginación */
+.pagination {
+  margin-bottom: 0;
+}
+
+/* Estilos para formularios */
+.form-label {
+  font-weight: 500;
+}
+
+/* Estilos para pantallas pequeñas */
+@media (max-width: 767.98px) {
+  .sidebar {
+    position: static;
+    height: auto;
+    min-height: auto;
+  }
+  
+  .sidebar-col {
+    margin-bottom: 1rem;
+  }
+}

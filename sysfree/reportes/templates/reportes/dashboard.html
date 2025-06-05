@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Dashboard de Reportes" %} | {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6">{% trans "Dashboard de Reportes" %}</h1>
+    
+    <!-- Resumen -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Ventas -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold">{% trans "Ventas" %}</h2>
+                <span class="text-blue-600">
+                    <i class="fas fa-shopping-cart text-2xl"></i>
+                </span>
+            </div>
+            <div class="text-3xl font-bold text-gray-800">${{ total_ventas|floatformat:2 }}</div>
+            <div class="text-sm text-gray-500 mt-1">{% trans "Últimos 30 días" %}</div>
+            <div class="mt-4">
+                <span class="text-lg font-semibold">{{ num_ventas }}</span>
+                <span class="text-gray-600 ml-1">{% trans "ventas realizadas" %}</span>
+            </div>
+        </div>
+        
+        <!-- Reparaciones -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold">{% trans "Reparaciones" %}</h2>
+                <span class="text-green-600">
+                    <i class="fas fa-tools text-2xl"></i>
+                </span>
+            </div>
+            <div class="text-3xl font-bold text-gray-800">${{ total_reparaciones|floatformat:2 }}</div>
+            <div class="text-sm text-gray-500 mt-1">{% trans "Últimos 30 días" %}</div>
+            <div class="mt-4">
+                <span class="text-lg font-semibold">{{ num_reparaciones }}</span>
+                <span class="text-gray-600 ml-1">{% trans "reparaciones" %}</span>
+            </div>
+        </div>
+        
+        <!-- Pedidos Online -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold">{% trans "Pedidos Online" %}</h2>
+                <span class="text-purple-600">
+                    <i class="fas fa-globe text-2xl"></i>
+                </span>
+            </div>
+            <div class="text-3xl font-bold text-gray-800">${{ total_pedidos|floatformat:2 }}</div>
+            <div class="text-sm text-gray-500 mt-1">{% trans "Últimos 30 días" %}</div>
+            <div class="mt-4">
+                <span class="text-lg font-semibold">{{ num_pedidos }}</span>
+                <span class="text-gray-600 ml-1">{% trans "pedidos online" %}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráficos -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <!-- Ventas por día -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">{% trans "Ventas por día" %}</h2>
+            <div class="h-80">
+                <canvas id="ventasPorDiaChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Reparaciones por estado -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">{% trans "Reparaciones por estado" %}</h2>
+            <div class="h-80">
+                <canvas id="reparacionesPorEstadoChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Productos más vendidos -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <h2 class="text-xl font-semibold mb-4">{% trans "Productos más vendidos" %}</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "Producto" %}
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "Cantidad" %}
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {% trans "Total" %}
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for producto in productos_mas_vendidos %}
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">{{ producto.producto__nombre }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ producto.cantidad }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">${{ producto.total|floatformat:2 }}</div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="px-6 py-4 text-center text-sm text-gray-500">
+                            {% trans "No hay datos disponibles" %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Enlaces a reportes detallados -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <a href="{% url 'reportes:ventas' %}" class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold">{% trans "Reporte de Ventas" %}</h2>
+                <span class="text-blue-600">
+                    <i class="fas fa-chart-line text-2xl"></i>
+                </span>
+            </div>
+            <p class="text-gray-600">{% trans "Ver reporte detallado de ventas con filtros y exportación." %}</p>
+        </a>
+        
+        <a href="{% url 'reportes:inventario' %}" class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold">{% trans "Reporte de Inventario" %}</h2>
+                <span class="text-green-600">
+                    <i class="fas fa-boxes text-2xl"></i>
+                </span>
+            </div>
+            <p class="text-gray-600">{% trans "Ver reporte detallado de inventario con filtros y exportación." %}</p>
+        </a>
+        
+        <a href="{% url 'reportes:reparaciones' %}" class="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold">{% trans "Reporte de Reparaciones" %}</h2>
+                <span class="text-purple-600">
+                    <i class="fas fa-wrench text-2xl"></i>
+                </span>
+            </div>
+            <p class="text-gray-600">{% trans "Ver reporte detallado de reparaciones con filtros y exportación." %}</p>
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Datos para gráficos
+        const ventasPorDia = {{ ventas_por_dia|safe }};
+        const reparacionesPorEstado = {{ reparaciones_por_estado|safe }};
+        
+        // Gráfico de ventas por día
+        const ventasDias = ventasPorDia.map(item => item.dia.split('T')[0]);
+        const ventasTotales = ventasPorDia.map(item => item.total);
+        
+        new Chart(document.getElementById('ventasPorDiaChart'), {
+            type: 'line',
+            data: {
+                labels: ventasDias,
+                datasets: [{
+                    label: '{% trans "Ventas ($)" %}',
+                    data: ventasTotales,
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointBackgroundColor: 'rgba(59, 130, 246, 1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Gráfico de reparaciones por estado
+        const estadosReparacion = reparacionesPorEstado.map(item => {
+            const estados = {
+                'recibido': '{% trans "Recibido" %}',
+                'diagnostico': '{% trans "En diagnóstico" %}',
+                'espera_repuestos': '{% trans "Esperando repuestos" %}',
+                'en_reparacion': '{% trans "En reparación" %}',
+                'reparado': '{% trans "Reparado" %}',
+                'entregado': '{% trans "Entregado" %}',
+                'no_reparable': '{% trans "No reparable" %}',
+                'cancelado': '{% trans "Cancelado" %}'
+            };
+            return estados[item.estado] || item.estado;
+        });
+        
+        const cantidadReparaciones = reparacionesPorEstado.map(item => item.cantidad);
+        const coloresReparaciones = [
+            'rgba(59, 130, 246, 0.7)',   // Azul
+            'rgba(245, 158, 11, 0.7)',   // Amarillo
+            'rgba(249, 115, 22, 0.7)',   // Naranja
+            'rgba(139, 92, 246, 0.7)',   // Morado
+            'rgba(16, 185, 129, 0.7)',   // Verde
+            'rgba(79, 70, 229, 0.7)',    // Índigo
+            'rgba(239, 68, 68, 0.7)',    // Rojo
+            'rgba(107, 114, 128, 0.7)'   // Gris
+        ];
+        
+        new Chart(document.getElementById('reparacionesPorEstadoChart'), {
+            type: 'pie',
+            data: {
+                labels: estadosReparacion,
+                datasets: [{
+                    data: cantidadReparaciones,
+                    backgroundColor: coloresReparaciones,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right'
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

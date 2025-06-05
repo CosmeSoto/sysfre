@@ -1,0 +1,15 @@
+{% extends "core/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans 'Acceso denegado' %} | SysFree{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-box">
+        <h1>403</h1>
+        <h2>{% trans 'Acceso denegado' %}</h2>
+        <p>{% trans 'Lo sentimos, no tienes permiso para acceder a esta página.' %}</p>
+        <a href="{% url 'core:dashboard' %}" class="btn btn-primary">{% trans 'Volver al inicio' %}</a>
+    </div>
+</div>
+{% endblock %}

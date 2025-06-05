@@ -1,0 +1,59 @@
+{% extends "core/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans 'Editar Configuración' %} | SysFree{% endblock %}
+
+{% block content %}
+<div class="form-container">
+    <h1>{% trans 'Editar Configuración' %}</h1>
+    
+    <form method="post">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+        <div class="error-message">
+            {% for error in form.non_field_errors %}
+            {{ error }}
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <div class="form-group">
+            <label for="{{ form.clave.id_for_label }}">{{ form.clave.label }}</label>
+            {{ form.clave }}
+            {% if form.clave.errors %}
+            <div class="field-error">{{ form.clave.errors }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.valor.id_for_label }}">{{ form.valor.label }}</label>
+            {{ form.valor }}
+            {% if form.valor.errors %}
+            <div class="field-error">{{ form.valor.errors }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.tipo.id_for_label }}">{{ form.tipo.label }}</label>
+            {{ form.tipo }}
+            {% if form.tipo.errors %}
+            <div class="field-error">{{ form.tipo.errors }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="form-group">
+            <label for="{{ form.descripcion.id_for_label }}">{{ form.descripcion.label }}</label>
+            {{ form.descripcion }}
+            {% if form.descripcion.errors %}
+            <div class="field-error">{{ form.descripcion.errors }}</div>
+            {% endif %}
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">{% trans 'Guardar' %}</button>
+            <a href="{% url 'core:configuracion_list' %}" class="btn btn-secondary">{% trans 'Cancelar' %}</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

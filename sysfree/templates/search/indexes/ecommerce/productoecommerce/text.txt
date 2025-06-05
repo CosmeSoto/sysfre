@@ -1,0 +1,8 @@
+{{ object.producto.nombre }}
+{{ object.producto.codigo }}
+{{ object.descripcion_corta }}
+{{ object.descripcion_larga }}
+{% for categoria in object.categorias.all %}{{ categoria.nombre }} {% endfor %}
+{% if object.oferta %}oferta descuento promoción{% endif %}
+{% if object.nuevo %}nuevo reciente{% endif %}
+{% if object.destacado %}destacado recomendado{% endif %}

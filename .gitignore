@@ -1,0 +1,34 @@
+# Archivos y carpetas de Python
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+
+# Archivo de entorno con datos sensibles
+.env
+
+# Archivos de base de datos local
+*.sqlite3
+db.sqlite3
+
+# Carpetas de archivos estáticos y media recolectados
+staticfiles/
+media/
+
+# Archivos de configuración de IDEs o editores
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Archivos temporales del sistema
+*.log
+*.pot
+*.DS_Store
+Thumbs.db
+
+# Carpeta de entornos virtuales
+venv/
+env/
+.venv/

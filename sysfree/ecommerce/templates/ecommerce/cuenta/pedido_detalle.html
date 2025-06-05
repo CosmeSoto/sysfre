@@ -1,0 +1,327 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Detalle de Pedido" %} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex flex-col md:flex-row">
+        <!-- Menú lateral -->
+        <div class="w-full md:w-1/4 mb-6 md:mb-0 md:pr-6">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-center mb-6">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-blue-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h2 class="text-lg font-semibold">{{ request.user.get_full_name }}</h2>
+                        <p class="text-sm text-gray-600">{{ request.user.email }}</p>
+                    </div>
+                </div>
+                
+                <nav>
+                    <ul>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_dashboard' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md">
+                                <i class="fas fa-tachometer-alt w-5"></i>
+                                <span class="ml-2">{% trans "Panel de control" %}</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_pedidos' %}" class="flex items-center py-2 px-4 bg-blue-50 text-blue-700 rounded-md">
+                                <i class="fas fa-shopping-bag w-5"></i>
+                                <span class="ml-2">{% trans "Mis pedidos" %}</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_reparaciones' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md">
+                                <i class="fas fa-tools w-5"></i>
+                                <span class="ml-2">{% trans "Mis reparaciones" %}</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_direcciones' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md">
+                                <i class="fas fa-map-marker-alt w-5"></i>
+                                <span class="ml-2">{% trans "Mis direcciones" %}</span>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="{% url 'ecommerce:cuenta_perfil' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md">
+                                <i class="fas fa-user-edit w-5"></i>
+                                <span class="ml-2">{% trans "Mi perfil" %}</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'logout' %}" class="flex items-center py-2 px-4 hover:bg-gray-100 rounded-md text-red-600">
+                                <i class="fas fa-sign-out-alt w-5"></i>
+                                <span class="ml-2">{% trans "Cerrar sesión" %}</span>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        
+        <!-- Contenido principal -->
+        <div class="w-full md:w-3/4">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-2xl font-bold">{% trans "Pedido" %} #{{ pedido.numero }}</h1>
+                    <a href="{% url 'ecommerce:cuenta_pedidos' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <i class="fas fa-arrow-left mr-2"></i> {% trans "Volver a pedidos" %}
+                    </a>
+                </div>
+                
+                <!-- Información del pedido -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <h2 class="text-lg font-medium mb-3">{% trans "Información del pedido" %}</h2>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <div class="text-sm text-gray-500">{% trans "Número de pedido" %}</div>
+                                    <div class="font-medium">{{ pedido.numero }}</div>
+                                </div>
+                                <div>
+                                    <div class="text-sm text-gray-500">{% trans "Fecha" %}</div>
+                                    <div class="font-medium">{{ pedido.fecha|date:"d/m/Y H:i" }}</div>
+                                </div>
+                                <div>
+                                    <div class="text-sm text-gray-500">{% trans "Estado" %}</div>
+                                    <div>
+                                        <span class="px-2 py-1 text-xs font-semibold rounded-full 
+                                            {% if pedido.estado == 'pendiente' %}bg-yellow-100 text-yellow-800
+                                            {% elif pedido.estado == 'pagado' %}bg-green-100 text-green-800
+                                            {% elif pedido.estado == 'enviado' %}bg-blue-100 text-blue-800
+                                            {% elif pedido.estado == 'entregado' %}bg-purple-100 text-purple-800
+                                            {% elif pedido.estado == 'cancelado' %}bg-red-100 text-red-800
+                                            {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                            {{ pedido.get_estado_display }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="text-sm text-gray-500">{% trans "Total" %}</div>
+                                    <div class="font-medium">${{ pedido.total }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h2 class="text-lg font-medium mb-3">{% trans "Seguimiento" %}</h2>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <div class="space-y-3">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                                        <i class="fas fa-check text-green-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">{% trans "Pedido recibido" %}</div>
+                                        <div class="text-sm text-gray-500">{{ pedido.fecha|date:"d/m/Y H:i" }}</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 {% if pedido.estado == 'pagado' or pedido.estado == 'enviado' or pedido.estado == 'entregado' %}bg-green-100{% else %}bg-gray-100{% endif %} rounded-full flex items-center justify-center mr-3">
+                                        {% if pedido.estado == 'pagado' or pedido.estado == 'enviado' or pedido.estado == 'entregado' %}
+                                        <i class="fas fa-check text-green-600"></i>
+                                        {% else %}
+                                        <i class="fas fa-credit-card text-gray-400"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">{% trans "Pago confirmado" %}</div>
+                                        <div class="text-sm text-gray-500">
+                                            {% if pedido.fecha_pago %}
+                                            {{ pedido.fecha_pago|date:"d/m/Y H:i" }}
+                                            {% else %}
+                                            {% trans "Pendiente" %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 {% if pedido.estado == 'enviado' or pedido.estado == 'entregado' %}bg-green-100{% else %}bg-gray-100{% endif %} rounded-full flex items-center justify-center mr-3">
+                                        {% if pedido.estado == 'enviado' or pedido.estado == 'entregado' %}
+                                        <i class="fas fa-check text-green-600"></i>
+                                        {% else %}
+                                        <i class="fas fa-box text-gray-400"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">{% trans "Pedido enviado" %}</div>
+                                        <div class="text-sm text-gray-500">
+                                            {% if pedido.fecha_envio %}
+                                            {{ pedido.fecha_envio|date:"d/m/Y H:i" }}
+                                            {% else %}
+                                            {% trans "Pendiente" %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 {% if pedido.estado == 'entregado' %}bg-green-100{% else %}bg-gray-100{% endif %} rounded-full flex items-center justify-center mr-3">
+                                        {% if pedido.estado == 'entregado' %}
+                                        <i class="fas fa-check text-green-600"></i>
+                                        {% else %}
+                                        <i class="fas fa-home text-gray-400"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <div class="font-medium">{% trans "Pedido entregado" %}</div>
+                                        <div class="text-sm text-gray-500">
+                                            {% if pedido.fecha_entrega %}
+                                            {{ pedido.fecha_entrega|date:"d/m/Y H:i" }}
+                                            {% else %}
+                                            {% trans "Pendiente" %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Detalles del pedido -->
+                <div class="mb-6">
+                    <h2 class="text-lg font-medium mb-3">{% trans "Productos" %}</h2>
+                    <div class="border rounded-lg overflow-hidden">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        {% trans "Producto" %}
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        {% trans "Precio" %}
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        {% trans "Cantidad" %}
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        {% trans "Subtotal" %}
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for detalle in pedido.detalles.all %}
+                                <tr>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center">
+                                            {% if not detalle.es_servicio %}
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-full object-cover" src="{{ detalle.producto.imagen.url|default:'https://via.placeholder.com/40' }}" alt="{{ detalle.producto.nombre }}">
+                                            </div>
+                                            {% else %}
+                                            <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <i class="fas fa-tools text-blue-600"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">
+                                                    {% if detalle.es_servicio %}
+                                                        {{ detalle.item }}
+                                                        <span class="ml-1 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">{% trans "Servicio" %}</span>
+                                                        {% if detalle.reparacion %}
+                                                        <a href="{% url 'ecommerce:cuenta_reparacion_detail' detalle.reparacion.numero %}" class="ml-2 text-xs text-blue-600 hover:text-blue-800">
+                                                            {% trans "Ver reparación" %}
+                                                        </a>
+                                                        {% endif %}
+                                                    {% else %}
+                                                        {{ detalle.producto.nombre }}
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">${{ detalle.precio_unitario }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">{{ detalle.cantidad }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">${{ detalle.subtotal }}</div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Direcciones y resumen -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <h2 class="text-lg font-medium mb-3">{% trans "Dirección de facturación" %}</h2>
+                        <div class="border rounded-lg p-4">
+                            <div class="font-medium">{{ pedido.direccion_facturacion.nombre }}</div>
+                            <div class="text-sm text-gray-600">
+                                {{ pedido.direccion_facturacion.direccion }}<br>
+                                {{ pedido.direccion_facturacion.ciudad }}, {{ pedido.direccion_facturacion.provincia }}<br>
+                                {{ pedido.direccion_facturacion.codigo_postal }}<br>
+                                {{ pedido.direccion_facturacion.get_pais_display }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h2 class="text-lg font-medium mb-3">{% trans "Dirección de envío" %}</h2>
+                        <div class="border rounded-lg p-4">
+                            <div class="font-medium">{{ pedido.direccion_envio.nombre }}</div>
+                            <div class="text-sm text-gray-600">
+                                {{ pedido.direccion_envio.direccion }}<br>
+                                {{ pedido.direccion_envio.ciudad }}, {{ pedido.direccion_envio.provincia }}<br>
+                                {{ pedido.direccion_envio.codigo_postal }}<br>
+                                {{ pedido.direccion_envio.get_pais_display }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h2 class="text-lg font-medium mb-3">{% trans "Resumen" %}</h2>
+                        <div class="border rounded-lg p-4">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-gray-600">{% trans "Subtotal" %}</span>
+                                <span class="font-medium">${{ pedido.subtotal }}</span>
+                            </div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-gray-600">{% trans "Impuestos" %}</span>
+                                <span class="font-medium">${{ pedido.impuestos }}</span>
+                            </div>
+                            <div class="flex justify-between mb-2">
+                                <span class="text-gray-600">{% trans "Envío" %}</span>
+                                <span class="font-medium">${{ pedido.envio }}</span>
+                            </div>
+                            {% if pedido.descuento > 0 %}
+                            <div class="flex justify-between mb-2">
+                                <span class="text-gray-600">{% trans "Descuento" %}</span>
+                                <span class="font-medium text-red-600">-${{ pedido.descuento }}</span>
+                            </div>
+                            {% endif %}
+                            <div class="border-t border-gray-200 mt-2 pt-2 flex justify-between">
+                                <span class="font-semibold">{% trans "Total" %}</span>
+                                <span class="font-semibold">${{ pedido.total }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if pedido.notas %}
+                <div class="mt-6">
+                    <h2 class="text-lg font-medium mb-3">{% trans "Notas" %}</h2>
+                    <div class="border rounded-lg p-4">
+                        <p class="text-gray-700">{{ pedido.notas }}</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

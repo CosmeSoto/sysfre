@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Tienda Online" %} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Banner principal -->
+    <div class="bg-blue-600 text-white rounded-lg shadow-lg mb-8 overflow-hidden">
+        <div class="flex flex-col md:flex-row">
+            <div class="w-full md:w-1/2 p-8 flex flex-col justify-center">
+                <h1 class="text-3xl md:text-4xl font-bold mb-4">{% trans "Bienvenido a Freecom" %}</h1>
+                <p class="text-lg mb-6">{% trans "Tu tienda de confianza para equipos tecnológicos y servicios de reparación." %}</p>
+                <div class="flex space-x-4">
+                    <a href="{% url 'ecommerce:producto_list' %}" class="bg-white text-blue-600 hover:bg-blue-100 font-bold py-2 px-6 rounded-full">
+                        {% trans "Ver productos" %}
+                    </a>
+                    <a href="{% url 'ecommerce:servicios_lista' %}" class="bg-transparent hover:bg-blue-700 border border-white text-white font-bold py-2 px-6 rounded-full">
+                        {% trans "Servicios" %}
+                    </a>
+                </div>
+            </div>
+            <div class="w-full md:w-1/2 bg-blue-700 p-8 flex items-center justify-center">
+                <img src="{% static 'ecommerce/img/banner.png' %}" alt="Banner" class="max-h-64">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Categorías destacadas -->
+    <div class="mb-12">
+        <h2 class="text-2xl font-bold mb-6">{% trans "Categorías destacadas" %}</h2>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {% for categoria in categorias %}
+            <a href="{% url 'ecommerce:categoria_detail' categoria.slug %}" class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                <div class="p-4 text-center">
+                    <div class="w-16 h-16 mx-auto mb-2 bg-blue-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-folder text-blue-600 text-2xl"></i>
+                    </div>
+                    <h3 class="font-semibold">{{ categoria.nombre }}</h3>
+                    <p class="text-sm text-gray-500">{{ categoria.num_productos }} {% trans "productos" %}</p>
+                </div>
+            </a>
+            {% empty %}
+            <p class="col-span-6 text-center text-gray-500">{% trans "No hay categorías disponibles." %}</p>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Productos destacados -->
+    <div class="mb-12">
+        <h2 class="text-2xl font-bold mb-6">{% trans "Productos destacados" %}</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {% for producto in productos_destacados %}
+            <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                <a href="{% url 'ecommerce:producto_detail' producto.slug %}">
+                    <img src="{{ producto.producto.imagen.url|default:'https://via.placeholder.com/300x200' }}" alt="{{ producto.producto.nombre }}" class="w-full h-48 object-cover">
+                </a>
+                <div class="p-4">
+                    <a href="{% url 'ecommerce:producto_detail' producto.slug %}" class="text-lg font-semibold hover:text-blue-600">
+                        {{ producto.producto.nombre }}
+                    </a>
+                    <p class="text-gray-600 mt-2 text-sm">{{ producto.descripcion_corta|truncatechars:60 }}</p>
+                    <div class="mt-4 flex justify-between items-center">
+                        <span class="text-xl font-bold text-blue-600">${{ producto.precio_actual }}</span>
+                        <form method="post" action="{% url 'ecommerce:agregar_al_carrito' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="producto_id" value="{{ producto.producto.id }}">
+                            <input type="hidden" name="cantidad" value="1">
+                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded-full text-sm">
+                                <i class="fas fa-shopping-cart mr-1"></i> {% trans "Añadir" %}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="col-span-4 text-center text-gray-500">{% trans "No hay productos destacados disponibles." %}</p>
+            {% endfor %}
+        </div>
+        <div class="text-center mt-6">
+            <a href="{% url 'ecommerce:producto_list' %}" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">
+                {% trans "Ver todos los productos" %}
+            </a>
+        </div>
+    </div>
+    
+    <!-- Servicios destacados -->
+    <div class="mb-12">
+        <h2 class="text-2xl font-bold mb-6">{% trans "Servicios de reparación" %}</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {% for servicio in servicios_destacados %}
+            <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                <div class="p-6">
+                    <h3 class="text-xl font-semibold mb-2">{{ servicio.servicio.nombre }}</h3>
+                    <p class="text-gray-600 mb-4">{{ servicio.descripcion_corta|truncatechars:100 }}</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xl font-bold text-blue-600">${{ servicio.precio_actual }}</span>
+                        <a href="{% url 'ecommerce:servicio_detalle' servicio.slug %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                            {% trans "Ver detalles" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <p class="col-span-4 text-center text-gray-500">{% trans "No hay servicios destacados disponibles." %}</p>
+            {% endfor %}
+        </div>
+        <div class="text-center mt-6">
+            <a href="{% url 'ecommerce:servicios_lista' %}" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">
+                {% trans "Ver todos los servicios" %}
+            </a>
+        </div>
+    </div>
+    
+    <!-- Productos en oferta -->
+    {% if productos_oferta %}
+    <div class="mb-12">
+        <h2 class="text-2xl font-bold mb-6">{% trans "Ofertas especiales" %}</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {% for producto in productos_oferta %}
+            <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
+                <div class="relative">
+                    <a href="{% url 'ecommerce:producto_detail' producto.slug %}">
+                        <img src="{{ producto.producto.imagen.url|default:'https://via.placeholder.com/300x200' }}" alt="{{ producto.producto.nombre }}" class="w-full h-48 object-cover">
+                    </a>
+                    <span class="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                        -{{ producto.porcentaje_descuento }}%
+                    </span>
+                </div>
+                <div class="p-4">
+                    <a href="{% url 'ecommerce:producto_detail' producto.slug %}" class="text-lg font-semibold hover:text-blue-600">
+                        {{ producto.producto.nombre }}
+                    </a>
+                    <p class="text-gray-600 mt-2 text-sm">{{ producto.descripcion_corta|truncatechars:60 }}</p>
+                    <div class="mt-4 flex justify-between items-center">
+                        <div>
+                            <span class="text-gray-500 line-through">${{ producto.producto.precio_venta }}</span>
+                            <span class="text-xl font-bold text-red-600 ml-2">${{ producto.precio_actual }}</span>
+                        </div>
+                        <form method="post" action="{% url 'ecommerce:agregar_al_carrito' %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="producto_id" value="{{ producto.producto.id }}">
+                            <input type="hidden" name="cantidad" value="1">
+                            <button type="submit" class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-full text-sm">
+                                <i class="fas fa-shopping-cart mr-1"></i> {% trans "Añadir" %}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

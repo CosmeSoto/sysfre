@@ -1,0 +1,37 @@
+{% extends "core/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans 'Dashboard' %} | {{ sistema_nombre }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h1>{% trans 'Bienvenido a' %} {{ sistema_nombre }}</h1>
+    <p>{% trans 'Versión' %}: {{ sistema_version }}</p>
+    
+    <div class="dashboard-widgets">
+        <div class="widget">
+            <h3>{% trans 'Ventas' %}</h3>
+            <p>{% trans 'Accede al módulo de ventas para gestionar facturas, pedidos y pagos.' %}</p>
+            <a href="#" class="btn">{% trans 'Ir a Ventas' %}</a>
+        </div>
+        
+        <div class="widget">
+            <h3>{% trans 'Inventario' %}</h3>
+            <p>{% trans 'Gestiona productos, categorías, proveedores y stock.' %}</p>
+            <a href="#" class="btn">{% trans 'Ir a Inventario' %}</a>
+        </div>
+        
+        <div class="widget">
+            <h3>{% trans 'Clientes' %}</h3>
+            <p>{% trans 'Administra la información de tus clientes y su historial.' %}</p>
+            <a href="#" class="btn">{% trans 'Ir a Clientes' %}</a>
+        </div>
+        
+        <div class="widget">
+            <h3>{% trans 'Reparaciones' %}</h3>
+            <p>{% trans 'Gestiona órdenes de servicio técnico y reparaciones.' %}</p>
+            <a href="#" class="btn">{% trans 'Ir a Reparaciones' %}</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

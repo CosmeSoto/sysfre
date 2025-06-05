@@ -1,0 +1,197 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Pago con Tarjeta" %} | {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .StripeElement {
+        box-sizing: border-box;
+        height: 40px;
+        padding: 10px 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.375rem;
+        background-color: white;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        transition: box-shadow 150ms ease;
+    }
+
+    .StripeElement--focus {
+        box-shadow: 0 0 0 2px #3b82f6;
+    }
+
+    .StripeElement--invalid {
+        border-color: #ef4444;
+    }
+
+    .StripeElement--webkit-autofill {
+        background-color: #fefde5 !important;
+    }
+    
+    #card-errors {
+        color: #ef4444;
+        text-align: left;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+    
+    .spinner {
+        border: 3px solid rgba(0, 0, 0, 0.1);
+        border-radius: 50%;
+        border-top: 3px solid #3b82f6;
+        width: 20px;
+        height: 20px;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+        margin-right: 8px;
+        vertical-align: middle;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-3xl mx-auto">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h1 class="text-2xl font-bold mb-6">{% trans "Pago con Tarjeta" %}</h1>
+            
+            <div class="mb-6">
+                <div class="flex justify-between mb-2">
+                    <span class="text-gray-600">{% trans "Número de pedido:" %}</span>
+                    <span class="font-medium">{{ pedido.numero }}</span>
+                </div>
+                <div class="flex justify-between mb-2">
+                    <span class="text-gray-600">{% trans "Total a pagar:" %}</span>
+                    <span class="font-medium text-lg">${{ pedido.total }}</span>
+                </div>
+            </div>
+            
+            <form id="payment-form" method="post" action="{% url 'ecommerce:tarjeta_proceso' %}">
+                {% csrf_token %}
+                
+                <div class="mb-6">
+                    <label for="card-element" class="block text-sm font-medium text-gray-700 mb-2">
+                        {% trans "Datos de la tarjeta" %}
+                    </label>
+                    <div id="card-element" class="StripeElement"></div>
+                    <div id="card-errors" role="alert"></div>
+                </div>
+                
+                <div class="flex justify-between mt-8">
+                    <a href="{% url 'ecommerce:checkout_pago' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        <i class="fas fa-arrow-left mr-2"></i> {% trans "Volver" %}
+                    </a>
+                    <button id="submit-button" type="submit" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                        <span id="button-text">{% trans "Pagar ahora" %}</span>
+                        <span id="spinner" class="spinner hidden"></span>
+                    </button>
+                </div>
+            </form>
+            
+            <div class="mt-6 pt-6 border-t border-gray-200">
+                <div class="flex items-center mb-4">
+                    <i class="fas fa-lock text-green-600 mr-2"></i>
+                    <span class="text-sm text-gray-600">{% trans "Pago seguro con cifrado SSL" %}</span>
+                </div>
+                <div class="flex flex-wrap gap-4 justify-center">
+                    <img src="{% static 'img/visa.png' %}" alt="Visa" class="h-8">
+                    <img src="{% static 'img/mastercard.png' %}" alt="Mastercard" class="h-8">
+                    <img src="{% static 'img/amex.png' %}" alt="American Express" class="h-8">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Crear una instancia de Stripe
+        var stripe = Stripe('{{ stripe_public_key }}');
+        var elements = stripe.elements();
+        
+        // Personalizar el elemento de tarjeta
+        var style = {
+            base: {
+                color: '#32325d',
+                fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                fontSmoothing: 'antialiased',
+                fontSize: '16px',
+                '::placeholder': {
+                    color: '#aab7c4'
+                }
+            },
+            invalid: {
+                color: '#fa755a',
+                iconColor: '#fa755a'
+            }
+        };
+        
+        // Crear el elemento de tarjeta
+        var card = elements.create('card', {style: style});
+        card.mount('#card-element');
+        
+        // Manejar errores en tiempo real
+        card.addEventListener('change', function(event) {
+            var displayError = document.getElementById('card-errors');
+            if (event.error) {
+                displayError.textContent = event.error.message;
+            } else {
+                displayError.textContent = '';
+            }
+        });
+        
+        // Manejar el envío del formulario
+        var form = document.getElementById('payment-form');
+        var submitButton = document.getElementById('submit-button');
+        var spinner = document.getElementById('spinner');
+        var buttonText = document.getElementById('button-text');
+        
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            // Deshabilitar el botón y mostrar spinner
+            submitButton.disabled = true;
+            spinner.classList.remove('hidden');
+            buttonText.textContent = '{% trans "Procesando..." %}';
+            
+            // Crear token
+            stripe.createToken(card).then(function(result) {
+                if (result.error) {
+                    // Mostrar error
+                    var errorElement = document.getElementById('card-errors');
+                    errorElement.textContent = result.error.message;
+                    
+                    // Habilitar el botón y ocultar spinner
+                    submitButton.disabled = false;
+                    spinner.classList.add('hidden');
+                    buttonText.textContent = '{% trans "Pagar ahora" %}';
+                } else {
+                    // Enviar el token al servidor
+                    stripeTokenHandler(result.token);
+                }
+            });
+        });
+        
+        function stripeTokenHandler(token) {
+            // Insertar el token en el formulario
+            var hiddenInput = document.createElement('input');
+            hiddenInput.setAttribute('type', 'hidden');
+            hiddenInput.setAttribute('name', 'stripeToken');
+            hiddenInput.setAttribute('value', token.id);
+            form.appendChild(hiddenInput);
+            
+            // Enviar el formulario
+            form.submit();
+        }
+    });
+</script>
+{% endblock %}

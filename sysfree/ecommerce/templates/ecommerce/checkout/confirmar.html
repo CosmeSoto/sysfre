@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Checkout - Confirmar" %} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold">{% trans "Checkout" %}</h1>
+        <div class="flex items-center">
+            <span class="bg-gray-300 text-gray-600 w-8 h-8 rounded-full flex items-center justify-center font-bold">1</span>
+            <span class="mx-2 text-gray-600">{% trans "Dirección" %}</span>
+            <span class="h-1 w-8 bg-gray-300"></span>
+            <span class="bg-gray-300 text-gray-600 w-8 h-8 rounded-full flex items-center justify-center font-bold mx-2">2</span>
+            <span class="mx-2 text-gray-600">{% trans "Envío" %}</span>
+            <span class="h-1 w-8 bg-gray-300"></span>
+            <span class="bg-gray-300 text-gray-600 w-8 h-8 rounded-full flex items-center justify-center font-bold mx-2">3</span>
+            <span class="mx-2 text-gray-600">{% trans "Pago" %}</span>
+            <span class="h-1 w-8 bg-blue-600"></span>
+            <span class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold mx-2">4</span>
+            <span class="mx-2 text-blue-600 font-semibold">{% trans "Confirmar" %}</span>
+        </div>
+    </div>
+    
+    <div class="flex flex-col lg:flex-row gap-8">
+        <!-- Confirmación del pedido -->
+        <div class="w-full lg:w-2/3">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-xl font-semibold mb-4">{% trans "Confirma tu pedido" %}</h2>
+                
+                <!-- Productos -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium mb-3">{% trans "Productos" %}</h3>
+                    <div class="border rounded-lg overflow-hidden">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        {% trans "Producto" %}
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        {% trans "Cantidad" %}
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        {% trans "Precio" %}
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        {% trans "Subtotal" %}
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                {% for item in carrito.items.all %}
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            {% if not item.es_servicio %}
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-full object-cover" src="{{ item.producto.imagen.url|default:'https://via.placeholder.com/40' }}" alt="{{ item.producto.nombre }}">
+                                            </div>
+                                            {% else %}
+                                            <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <i class="fas fa-tools text-blue-600"></i>
+                                            </div>
+                                            {% endif %}
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">
+                                                    {% if item.es_servicio %}
+                                                        {{ item.item }}
+                                                        <span class="ml-1 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">{% trans "Servicio" %}</span>
+                                                    {% else %}
+                                                        {{ item.producto.nombre }}
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">{{ item.cantidad }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm text-gray-900">${{ item.precio_unitario }}</div>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="text-sm font-medium text-gray-900">${{ item.subtotal }}</div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Direcciones -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <h3 class="text-lg font-medium mb-3">{% trans "Dirección de facturación" %}</h3>
+                        <div class="border rounded-lg p-4">
+                            <div class="font-medium">{{ direccion_facturacion.nombre }}</div>
+                            <div class="text-sm text-gray-600">
+                                {{ direccion_facturacion.direccion }}<br>
+                                {{ direccion_facturacion.ciudad }}, {{ direccion_facturacion.provincia }}<br>
+                                {{ direccion_facturacion.codigo_postal }}<br>
+                                {{ direccion_facturacion.get_pais_display }}
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium mb-3">{% trans "Dirección de envío" %}</h3>
+                        <div class="border rounded-lg p-4">
+                            <div class="font-medium">{{ direccion_envio.nombre }}</div>
+                            <div class="text-sm text-gray-600">
+                                {{ direccion_envio.direccion }}<br>
+                                {{ direccion_envio.ciudad }}, {{ direccion_envio.provincia }}<br>
+                                {{ direccion_envio.codigo_postal }}<br>
+                                {{ direccion_envio.get_pais_display }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Método de envío y pago -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <h3 class="text-lg font-medium mb-3">{% trans "Método de envío" %}</h3>
+                        <div class="border rounded-lg p-4">
+                            <div class="font-medium">
+                                {% if metodo_envio == 'estandar' %}
+                                {% trans "Envío Estándar" %}
+                                {% elif metodo_envio == 'express' %}
+                                {% trans "Envío Express" %}
+                                {% elif metodo_envio == 'recogida' %}
+                                {% trans "Recogida en tienda" %}
+                                {% endif %}
+                            </div>
+                            <div class="text-sm text-gray-600 mt-1">
+                                {% trans "Costo:" %} ${{ costo_envio }}
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-medium mb-3">{% trans "Método de pago" %}</h3>
+                        <div class="border rounded-lg p-4">
+                            <div class="font-medium">
+                                {% if metodo_pago == 'paypal' %}
+                                <i class="fab fa-paypal mr-2 text-blue-600"></i> PayPal
+                                {% elif metodo_pago == 'tarjeta' %}
+                                <i class="far fa-credit-card mr-2 text-blue-600"></i> {% trans "Tarjeta de Crédito/Débito" %}
+                                {% elif metodo_pago == 'transferencia' %}
+                                <i class="fas fa-university mr-2 text-blue-600"></i> {% trans "Transferencia Bancaria" %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Notas -->
+                <form method="post" action="{% url 'ecommerce:checkout_confirmar' %}">
+                    {% csrf_token %}
+                    <div class="mb-6">
+                        <h3 class="text-lg font-medium mb-3">{% trans "Notas adicionales" %}</h3>
+                        <textarea name="notas" rows="3" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="{% trans 'Instrucciones especiales para la entrega, etc.' %}"></textarea>
+                    </div>
+                    
+                    <div class="flex justify-between mt-8">
+                        <a href="{% url 'ecommerce:checkout_pago' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            <i class="fas fa-arrow-left mr-2"></i> {% trans "Volver" %}
+                        </a>
+                        <button type="submit" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                            {% trans "Confirmar pedido" %} <i class="fas fa-check ml-2"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Resumen del pedido -->
+        <div class="w-full lg:w-1/3">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-lg font-semibold mb-4">{% trans "Resumen del pedido" %}</h2>
+                
+                <div class="border-t border-gray-200 pt-4">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-gray-600">{% trans "Subtotal" %}</span>
+                        <span class="font-medium">${{ carrito.subtotal }}</span>
+                    </div>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-gray-600">{% trans "Impuestos" %}</span>
+                        <span class="font-medium">${{ carrito.total_impuestos }}</span>
+                    </div>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-gray-600">{% trans "Envío" %}</span>
+                        <span class="font-medium">${{ costo_envio }}</span>
+                    </div>
+                    <div class="border-t border-gray-200 mt-2 pt-2 flex justify-between">
+                        <span class="text-lg font-semibold">{% trans "Total" %}</span>
+                        <span class="text-lg font-semibold">${{ total_con_envio }}</span>
+                    </div>
+                </div>
+                
+                <div class="mt-6 bg-gray-50 p-4 rounded-md">
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-shield-alt text-green-600 mr-2"></i>
+                        <span class="text-sm font-medium">{% trans "Pago seguro" %}</span>
+                    </div>
+                    <div class="flex items-center mb-2">
+                        <i class="fas fa-truck text-green-600 mr-2"></i>
+                        <span class="text-sm font-medium">{% trans "Envío rápido" %}</span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-undo text-green-600 mr-2"></i>
+                        <span class="text-sm font-medium">{% trans "Devoluciones sin complicaciones" %}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

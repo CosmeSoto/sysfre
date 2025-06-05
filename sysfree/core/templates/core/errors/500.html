@@ -1,0 +1,15 @@
+{% extends "core/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans 'Error del servidor' %} | SysFree{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-box">
+        <h1>500</h1>
+        <h2>{% trans 'Error del servidor' %}</h2>
+        <p>{% trans 'Lo sentimos, ha ocurrido un error en el servidor. Por favor, inténtalo de nuevo más tarde.' %}</p>
+        <a href="{% url 'core:dashboard' %}" class="btn btn-primary">{% trans 'Volver al inicio' %}</a>
+    </div>
+</div>
+{% endblock %}

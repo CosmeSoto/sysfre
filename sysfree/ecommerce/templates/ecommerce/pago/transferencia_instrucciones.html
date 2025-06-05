@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Instrucciones de Transferencia" %} | {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-3xl mx-auto">
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h1 class="text-2xl font-bold mb-6">{% trans "Instrucciones de Transferencia Bancaria" %}</h1>
+            
+            <div class="bg-green-50 border-l-4 border-green-400 p-4 mb-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-check-circle text-green-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-green-700">
+                            {% trans "Tu pedido ha sido registrado correctamente. Por favor, realiza la transferencia bancaria con los siguientes datos para completar el pago." %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <div class="flex justify-between mb-2">
+                    <span class="text-gray-600">{% trans "Número de pedido:" %}</span>
+                    <span class="font-medium">{{ pedido.numero }}</span>
+                </div>
+                <div class="flex justify-between mb-2">
+                    <span class="text-gray-600">{% trans "Total a pagar:" %}</span>
+                    <span class="font-medium text-lg">${{ pedido.total }}</span>
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                <h2 class="text-lg font-semibold mb-4">{% trans "Datos bancarios" %}</h2>
+                
+                <div class="space-y-3">
+                    <div class="flex">
+                        <span class="text-gray-600 w-32">{% trans "Banco:" %}</span>
+                        <span class="font-medium">{{ datos_bancarios.banco }}</span>
+                    </div>
+                    <div class="flex">
+                        <span class="text-gray-600 w-32">{% trans "Titular:" %}</span>
+                        <span class="font-medium">{{ datos_bancarios.titular }}</span>
+                    </div>
+                    <div class="flex">
+                        <span class="text-gray-600 w-32">{% trans "Cuenta:" %}</span>
+                        <span class="font-medium">{{ datos_bancarios.cuenta }}</span>
+                    </div>
+                    <div class="flex">
+                        <span class="text-gray-600 w-32">{% trans "SWIFT/BIC:" %}</span>
+                        <span class="font-medium">{{ datos_bancarios.swift }}</span>
+                    </div>
+                    <div class="flex">
+                        <span class="text-gray-600 w-32">{% trans "Referencia:" %}</span>
+                        <span class="font-medium text-red-600">{{ datos_bancarios.referencia }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-yellow-700">
+                            {% trans "IMPORTANTE: Incluye la referencia exacta en el concepto de la transferencia para que podamos identificar tu pago correctamente." %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <h2 class="text-lg font-semibold mb-4">{% trans "Pasos a seguir" %}</h2>
+                
+                <ol class="list-decimal pl-5 space-y-2">
+                    <li>{% trans "Realiza la transferencia bancaria con los datos proporcionados." %}</li>
+                    <li>{% trans "Incluye la referencia exacta en el concepto de la transferencia." %}</li>
+                    <li>{% trans "Una vez realizada la transferencia, puedes enviar el comprobante a nuestro correo electrónico: info@freecom.com" %}</li>
+                    <li>{% trans "Procesaremos tu pedido en cuanto confirmemos el pago (normalmente en 24-48 horas laborables)." %}</li>
+                </ol>
+            </div>
+            
+            <div class="flex justify-between mt-8">
+                <a href="{% url 'ecommerce:cuenta_pedidos' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    <i class="fas fa-list mr-2"></i> {% trans "Ver mis pedidos" %}
+                </a>
+                <a href="{% url 'ecommerce:inicio' %}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                    <i class="fas fa-home mr-2"></i> {% trans "Volver a la tienda" %}
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
