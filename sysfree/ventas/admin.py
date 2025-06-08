@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
-from .models import Venta, DetalleVenta, Pago
+from .models import Venta, DetalleVenta, Pago, NotaCredito, DetalleNotaCredito, Envio
 
 
 class DetalleVentaInline(admin.TabularInline):
@@ -15,6 +15,13 @@ class PagoInline(admin.TabularInline):
     extra = 0
     fields = ('metodo', 'monto', 'referencia', 'estado')
     readonly_fields = ('fecha',)
+
+
+class DetalleNotaCreditoInline(admin.TabularInline):
+    model = DetalleNotaCredito
+    extra = 0
+    fields = ('producto', 'cantidad', 'precio_unitario', 'iva', 'subtotal', 'total')
+    readonly_fields = ('subtotal', 'total')
 
 
 @admin.register(Venta)
@@ -35,13 +42,11 @@ class VentaAdmin(admin.ModelAdmin):
         ]
         
         if obj and obj.tipo == 'proforma':
-            # Campos específicos para proformas
             proforma_fields = [
                 (_('Proforma'), {'fields': ('validez', 'reparacion', 'venta_relacionada')}),
             ]
             return common_fields[:2] + proforma_fields + common_fields[2:]
         else:
-            # Campos específicos para facturas y otros tipos
             factura_fields = [
                 (_('Facturación electrónica'), {'fields': ('clave_acceso', 'numero_autorizacion', 'fecha_autorizacion')}),
                 (_('Fechas de seguimiento'), {'fields': ('fecha_pago', 'fecha_envio', 'fecha_entrega')}),
@@ -72,6 +77,36 @@ class PagoAdmin(admin.ModelAdmin):
             ),
             'classes': ('collapse',),
         }),
+        (_('Información adicional'), {'fields': ('notas',)}),
+        (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
+    )
+
+
+@admin.register(NotaCredito)
+class NotaCreditoAdmin(admin.ModelAdmin):
+    list_display = ('numero', 'fecha', 'venta', 'cliente', 'estado', 'total')
+    list_filter = ('estado', 'fecha')
+    search_fields = ('numero', 'venta__numero', 'cliente__nombres', 'cliente__apellidos', 'cliente__identificacion')
+    readonly_fields = ('fecha', 'fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
+    inlines = [DetalleNotaCreditoInline]
+    
+    fieldsets = (
+        (None, {'fields': ('numero', 'venta', 'cliente', 'estado')}),
+        (_('Detalles'), {'fields': ('motivo', 'subtotal', 'iva', 'total')}),
+        (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
+    )
+
+
+@admin.register(Envio)
+class EnvioAdmin(admin.ModelAdmin):
+    list_display = ('venta', 'transportista', 'numero_seguimiento', 'estado', 'fecha_envio')
+    list_filter = ('estado', 'fecha_envio')
+    search_fields = ('venta__numero', 'numero_seguimiento', 'transportista')
+    readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
+    
+    fieldsets = (
+        (None, {'fields': ('venta', 'transportista', 'numero_seguimiento', 'estado')}),
+        (_('Fechas'), {'fields': ('fecha_envio', 'fecha_entrega')}),
         (_('Información adicional'), {'fields': ('notas',)}),
         (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )

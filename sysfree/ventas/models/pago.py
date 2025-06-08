@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 from core.models import ModeloBase
 
 
@@ -34,15 +35,12 @@ class Pago(ModeloBase):
     referencia = models.CharField(_('referencia'), max_length=100, blank=True)
     estado = models.CharField(_('estado'), max_length=10, choices=ESTADO_CHOICES, default='pendiente')
     
-    # Campos para tarjeta
     numero_tarjeta = models.CharField(_('número de tarjeta'), max_length=19, blank=True)
     titular_tarjeta = models.CharField(_('titular de tarjeta'), max_length=100, blank=True)
     
-    # Campos para transferencia/depósito
     banco = models.CharField(_('banco'), max_length=100, blank=True)
     numero_cuenta = models.CharField(_('número de cuenta'), max_length=30, blank=True)
     
-    # Campos para cheque
     numero_cheque = models.CharField(_('número de cheque'), max_length=30, blank=True)
     banco_cheque = models.CharField(_('banco del cheque'), max_length=100, blank=True)
     
@@ -54,4 +52,16 @@ class Pago(ModeloBase):
         ordering = ['-fecha']
     
     def __str__(self):
-        return f"{self.get_metodo_display()} - {self.monto}"
+        return f"{self.get_metodo_display()} - {self.monto:.2f}"
+    
+    def clean(self):
+        """Valida los campos del pago."""
+        super().clean()
+        if self.monto <= 0:
+            raise ValidationError(_('El monto debe ser positivo.'))
+        if self.metodo == 'tarjeta' and (not self.numero_tarjeta or not self.titular_tarjeta):
+            raise ValidationError(_('El número y titular de la tarjeta son requeridos para pagos con tarjeta.'))
+        if self.metodo == 'transferencia' and (not self.banco or not self.numero_cuenta):
+            raise ValidationError(_('El banco y número de cuenta son requeridos para transferencias.'))
+        if self.metodo == 'cheque' and (not self.numero_cheque or not self.banco_cheque):
+            raise ValidationError(_('El número y banco del cheque son requeridos para pagos con cheque.'))

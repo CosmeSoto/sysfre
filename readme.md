@@ -65,15 +65,15 @@ python manage.py runserver
 
 # Borrar migraciones
 
-find . -path "*/migrations/*.py" -not -name "__init__.py" -delete
-find . -path "*/migrations/*.pyc" -delete
+find . -path "_/migrations/_.py" -not -name "**init**.py" -delete
+find . -path "_/migrations/_.pyc" -delete
 
-find . -name "__pycache__" -type d -exec rm -rf {} +
+find . -name "**pycache**" -type d -exec rm -rf {} +
 
 python manage.py clear_cache
 
-rm -rf staticfiles/*
-rm -rf media/*
+rm -rf staticfiles/_
+rm -rf media/_
 python manage.py collectstatic --noinput
 
 # Elimina todos los datos (cuidado, esto borra todo)
@@ -146,7 +146,7 @@ python manage.py makemessages -l es -d django -i "venv/\*" --locale-path inventa
 
 python manage.py check
 
-# Test 
+# Test
 
 coverage run manage.py test
 coverage report
@@ -158,4 +158,3 @@ coverage run manage.py test reparaciones
 coverage run manage.py test fiscal
 coverage run manage.py test ecommerce
 coverage run manage.py test reportes
-

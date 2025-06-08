@@ -1,5 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from core.models import ModeloBase
 from .reporte import Reporte
 
@@ -51,3 +53,18 @@ class ProgramacionReporte(ModeloBase):
     
     def __str__(self):
         return f"{self.nombre} - {self.reporte}"
+    
+    def clean(self):
+        """Valida los campos de la programación."""
+        super().clean()
+        if self.frecuencia == 'semanal' and self.dia_semana is None:
+            raise ValidationError(_('El día de la semana es requerido para frecuencias semanales.'))
+        if self.frecuencia == 'mensual' and self.dia_mes is None:
+            raise ValidationError(_('El día del mes es requerido para frecuencias mensuales.'))
+        if self.destinatarios:
+            emails = [email.strip() for email in self.destinatarios.split(',')]
+            for email in emails:
+                try:
+                    validate_email(email)
+                except ValidationError:
+                    raise ValidationError(_(f'El correo "{email}" no es válido.'))

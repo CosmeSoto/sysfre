@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 from core.models import ModeloBase
 
 
@@ -24,6 +25,12 @@ class PeriodoFiscal(ModeloBase):
     
     def __str__(self):
         return self.nombre
+    
+    def clean(self):
+        """Valida que la fecha de fin no sea anterior a la fecha de inicio."""
+        if self.fecha_fin < self.fecha_inicio:
+            raise ValidationError(_('La fecha de fin no puede ser anterior a la fecha de inicio.'))
+        super().clean()
     
     @property
     def esta_activo(self):

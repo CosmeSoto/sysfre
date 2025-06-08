@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 from core.models import ModeloBase
 from inventario.models import Proveedor
 
@@ -35,7 +36,6 @@ class Comprobante(ModeloBase):
     total = models.DecimalField(_('total'), max_digits=12, decimal_places=2, default=0)
     estado = models.CharField(_('estado'), max_length=10, choices=ESTADO_CHOICES, default='borrador')
     
-    # Campos para documentos relacionados
     comprobante_relacionado = models.ForeignKey(
         'self',
         verbose_name=_('comprobante relacionado'),
@@ -45,7 +45,6 @@ class Comprobante(ModeloBase):
         related_name='comprobantes_relacionados'
     )
     
-    # Campos para asiento contable
     asiento_contable = models.ForeignKey(
         'AsientoContable',
         verbose_name=_('asiento contable'),
@@ -62,3 +61,13 @@ class Comprobante(ModeloBase):
     
     def __str__(self):
         return f"{self.get_tipo_display()} {self.numero} - {self.proveedor}"
+    
+    def clean(self):
+        """Valida que subtotal, impuestos y total no sean negativos."""
+        if self.subtotal < 0:
+            raise ValidationError(_('El subtotal no puede ser negativo.'))
+        if self.impuestos < 0:
+            raise ValidationError(_('Los impuestos no pueden ser negativos.'))
+        if self.total < 0:
+            raise ValidationError(_('El total no puede ser negativo.'))
+        super().clean()

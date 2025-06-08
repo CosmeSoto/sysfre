@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 from core.models import ModeloBase
 from .asiento_contable import AsientoContable
 from .cuenta_contable import CuentaContable
@@ -30,12 +31,15 @@ class LineaAsiento(ModeloBase):
         ordering = ['id']
     
     def __str__(self):
-        return f"{self.cuenta} - {self.debe if self.debe > 0 else self.haber}"
+        value = self.debe if self.debe > 0 else self.haber
+        return f"{self.cuenta} - {value:.2f}"
     
     def clean(self):
-        """Valida que una línea tenga valor en debe o en haber, pero no en ambos."""
-        from django.core.exceptions import ValidationError
+        """Valida que una línea tenga valor en debe o en haber, pero no en ambos, y que no sean negativos."""
         if self.debe > 0 and self.haber > 0:
             raise ValidationError(_('Una línea no puede tener valores en debe y haber simultáneamente.'))
         if self.debe == 0 and self.haber == 0:
             raise ValidationError(_('Una línea debe tener un valor en debe o en haber.'))
+        if self.debe < 0 or self.haber < 0:
+            raise ValidationError(_('Los valores en debe y haber no pueden ser negativos.'))
+        super().clean()

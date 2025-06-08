@@ -1,19 +1,20 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 from core.models import ModeloBase
 from clientes.models import Cliente, DireccionCliente
 from inventario.models import Producto
 
 
 class Venta(ModeloBase):
-    """Modelo para ventas."""
+    """Modelo para ventas, incluyendo facturas y proformas."""
     
     TIPO_CHOICES = (
         ('factura', _('Factura')),
-        ('proforma', _('Proforma')),
         ('nota_venta', _('Nota de Venta')),
         ('ticket', _('Ticket')),
+        ('proforma', _('Proforma')),
     )
     
     ESTADO_CHOICES = (
@@ -21,6 +22,11 @@ class Venta(ModeloBase):
         ('emitida', _('Emitida')),
         ('pagada', _('Pagada')),
         ('anulada', _('Anulada')),
+        ('enviada', _('Enviada')),  # Para proformas
+        ('aceptada', _('Aceptada')),  # Para proformas
+        ('rechazada', _('Rechazada')),  # Para proformas
+        ('vencida', _('Vencida')),  # Para proformas
+        ('facturada', _('Facturada')),  # Para proformas
     )
     
     numero = models.CharField(_('número'), max_length=20, unique=True)
@@ -53,19 +59,16 @@ class Venta(ModeloBase):
     iva = models.DecimalField(_('IVA'), max_digits=10, decimal_places=2, default=0)
     descuento = models.DecimalField(_('descuento'), max_digits=10, decimal_places=2, default=0)
     total = models.DecimalField(_('total'), max_digits=10, decimal_places=2, default=0)
-    validez = models.PositiveIntegerField(_('validez (días)'), default=15, help_text=_('Solo para proformas'))
+    validez = models.PositiveIntegerField(_('validez (días)'), default=15)
     
-    # Campos para facturación electrónica
     clave_acceso = models.CharField(_('clave de acceso'), max_length=49, blank=True)
     numero_autorizacion = models.CharField(_('número de autorización'), max_length=49, blank=True)
     fecha_autorizacion = models.DateTimeField(_('fecha de autorización'), null=True, blank=True)
     
-    # Campos para seguimiento
     fecha_pago = models.DateTimeField(_('fecha de pago'), null=True, blank=True)
     fecha_envio = models.DateTimeField(_('fecha de envío'), null=True, blank=True)
     fecha_entrega = models.DateTimeField(_('fecha de entrega'), null=True, blank=True)
     
-    # Referencias
     reparacion = models.ForeignKey(
         'reparaciones.Reparacion',
         verbose_name=_('reparación'),
@@ -80,8 +83,7 @@ class Venta(ModeloBase):
         on_delete=models.SET_NULL,
         related_name='ventas_relacionadas',
         null=True,
-        blank=True,
-        help_text=_('Para proformas convertidas a facturas o viceversa')
+        blank=True
     )
     
     notas = models.TextField(_('notas'), blank=True)
@@ -90,16 +92,46 @@ class Venta(ModeloBase):
         verbose_name = _('venta')
         verbose_name_plural = _('ventas')
         ordering = ['-fecha']
+        indexes = [
+            models.Index(fields=['numero', 'clave_acceso'])
+        ]
     
     def __str__(self):
         return f"{self.numero} - {self.cliente}"
+    
+    def clean(self):
+        """Valida los campos de la venta."""
+        super().clean()
+        if self.subtotal < 0:
+            raise ValidationError(_('El subtotal no puede ser negativo.'))
+        if self.iva < 0:
+            raise ValidationError(_('El IVA no puede ser negativo.'))
+        if self.descuento < 0:
+            raise ValidationError(_('El descuento no puede ser negativo.'))
+        if self.total < 0:
+            raise ValidationError(_('El total no puede ser negativo.'))
+        if self.validez <= 0:
+            raise ValidationError(_('La validez debe ser positiva.'))
+        if self.tipo == 'proforma' and self.estado in ['emitida', 'pagada', 'anulada']:
+            raise ValidationError(_('Las proformas no pueden estar en estado emitida, pagada o anulada.'))
+    
+    def save(self, *args, **kwargs):
+        """Sincroniza subtotal, IVA, descuento y total con los detalles."""
+        # Guardar primero para obtener un pk
+        super().save(*args, **kwargs)
+        # Solo sincronizar si la instancia ya tiene un pk
+        if self.pk and self.detalles.exists():
+            self.subtotal = sum(detalle.subtotal for detalle in self.detalles.all())
+            self.iva = sum(detalle.iva for detalle in self.detalles.all())
+            self.descuento = sum(detalle.descuento for detalle in self.detalles.all())
+            self.total = sum(detalle.total for detalle in self.detalles.all())
+            super().save(*args, **kwargs)
     
     @property
     def esta_pagado(self):
         """Indica si la venta está completamente pagada."""
         if self.estado == 'pagada':
             return True
-        
         total_pagado = sum(pago.monto for pago in self.pagos.filter(estado='aprobado'))
         return total_pagado >= self.total
     
@@ -108,36 +140,5 @@ class Venta(ModeloBase):
         """Indica si la proforma está vencida."""
         if self.tipo != 'proforma':
             return False
-        
         fecha_vencimiento = self.fecha + timezone.timedelta(days=self.validez)
         return timezone.now() > fecha_vencimiento
-
-
-class DetalleVenta(ModeloBase):
-    """Modelo para detalles de ventas."""
-    
-    venta = models.ForeignKey(
-        Venta,
-        verbose_name=_('venta'),
-        on_delete=models.CASCADE,
-        related_name='detalles'
-    )
-    producto = models.ForeignKey(
-        Producto,
-        verbose_name=_('producto'),
-        on_delete=models.PROTECT,
-        related_name='detalles_venta'
-    )
-    cantidad = models.DecimalField(_('cantidad'), max_digits=10, decimal_places=2)
-    precio_unitario = models.DecimalField(_('precio unitario'), max_digits=10, decimal_places=2)
-    descuento = models.DecimalField(_('descuento'), max_digits=10, decimal_places=2, default=0)
-    iva = models.DecimalField(_('IVA'), max_digits=10, decimal_places=2, default=0)
-    subtotal = models.DecimalField(_('subtotal'), max_digits=10, decimal_places=2)
-    total = models.DecimalField(_('total'), max_digits=10, decimal_places=2)
-    
-    class Meta:
-        verbose_name = _('detalle de venta')
-        verbose_name_plural = _('detalles de venta')
-    
-    def __str__(self):
-        return f"{self.producto} x {self.cantidad}"

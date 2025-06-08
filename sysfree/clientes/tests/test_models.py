@@ -1,7 +1,9 @@
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from sysfree.clientes.models import Cliente, ContactoCliente, DireccionCliente
-from sysfree.core.models import Usuario # Importa el modelo Usuario de core
+from ..models.cliente import Cliente
+from ..models.contacto import ContactoCliente
+from ..models.direccion import DireccionCliente
+from core.models import Usuario
 
 class ClienteModelTest(TestCase):
 

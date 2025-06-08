@@ -1,9 +1,12 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 from core.models import ModeloBase
 from .producto import Producto
 from .proveedor import Proveedor
-
+from .almacen import Almacen
+from .lote import Lote
+from .stock_almacen import StockAlmacen
 
 class MovimientoInventario(ModeloBase):
     """Modelo para registrar movimientos de inventario."""
@@ -47,10 +50,23 @@ class MovimientoInventario(ModeloBase):
         blank=True,
         related_name='movimientos'
     )
+    almacen = models.ForeignKey(
+        Almacen,
+        verbose_name=_('almacén'),
+        on_delete=models.PROTECT,
+        related_name='movimientos'
+    )
+    lote = models.ForeignKey(
+        Lote,
+        verbose_name=_('lote'),
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='movimientos'
+    )
     documento = models.CharField(_('documento'), max_length=50, blank=True)
     notas = models.TextField(_('notas'), blank=True)
     
-    # Campos para trazabilidad
     referencia_id = models.PositiveIntegerField(_('ID de referencia'), null=True, blank=True)
     referencia_tipo = models.CharField(_('tipo de referencia'), max_length=50, blank=True)
     
@@ -60,4 +76,42 @@ class MovimientoInventario(ModeloBase):
         ordering = ['-fecha']
     
     def __str__(self):
-        return f"{self.get_tipo_display()} - {self.producto} - {self.cantidad}"
+        return f"{self.get_tipo_display()} - {self.producto} - {self.cantidad:.2f}"
+    
+    def clean(self):
+        super().clean()
+        if self.cantidad < 0:
+            raise ValidationError(_('La cantidad no puede ser negativa.'))
+        if self.tipo == 'entrada':
+            expected_stock = self.stock_anterior + self.cantidad
+            if self.costo_unitario is None:
+                raise ValidationError(_('El costo unitario es obligatorio para movimientos de entrada.'))
+        elif self.tipo == 'salida':
+            expected_stock = self.stock_anterior - self.cantidad
+            if self.producto.es_inventariable:
+                stock_almacen = StockAlmacen.objects.filter(producto=self.producto, almacen=self.almacen).first()
+                if not stock_almacen or self.cantidad > stock_almacen.cantidad:
+                    raise ValidationError(_('La cantidad solicitada excede el stock disponible en el almacén.'))
+        else:
+            expected_stock = self.stock_nuevo
+        if self.tipo in ['entrada', 'salida'] and self.stock_nuevo != expected_stock:
+            raise ValidationError(_('El stock nuevo no coincide con el cálculo esperado.'))
+        if self.lote and self.lote.producto != self.producto:
+            raise ValidationError(_('El lote debe corresponder al producto seleccionado.'))
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Actualizar StockAlmacen
+        stock_almacen, _ = StockAlmacen.objects.get_or_create(
+            producto=self.producto,
+            almacen=self.almacen,
+            defaults={'cantidad': self.stock_nuevo}
+        )
+        stock_almacen.cantidad = self.stock_nuevo
+        stock_almacen.save()
+        # Actualizar Producto.stock (stock total en todos los almacenes)
+        total_stock = StockAlmacen.objects.filter(producto=self.producto).aggregate(
+            total=models.Sum('cantidad')
+        )['total'] or 0
+        self.producto.stock = total_stock
+        self.producto.save()

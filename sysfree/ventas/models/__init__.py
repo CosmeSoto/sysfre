@@ -1,9 +1,13 @@
-from .venta import Venta, DetalleVenta
+from .venta import Venta
+from .detalle_venta import DetalleVenta
 from .pago import Pago
-from .proforma import Proforma, DetalleProforma
+from .nota_credito import NotaCredito, DetalleNotaCredito
+from .envio import Envio
 
 __all__ = [
-    'Venta', 'DetalleVenta',
+    'Venta',
+    'DetalleVenta',
     'Pago',
-    'Proforma', 'DetalleProforma',
+    'NotaCredito','DetalleNotaCredito',
+    'Envio',
 ]

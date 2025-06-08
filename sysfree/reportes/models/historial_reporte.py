@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 from core.models import ModeloBase
 from .reporte import Reporte
 from .programacion_reporte import ProgramacionReporte
@@ -41,3 +42,9 @@ class HistorialReporte(ModeloBase):
     
     def __str__(self):
         return f"{self.reporte} - {self.fecha_ejecucion}"
+    
+    def clean(self):
+        """Valida que la duración no sea negativa."""
+        super().clean()
+        if self.duracion is not None and self.duracion < 0:
+            raise ValidationError(_('La duración no puede ser negativa.'))

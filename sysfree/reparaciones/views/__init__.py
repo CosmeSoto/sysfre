@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from ..models import Reparacion
-from ..services.proforma_service import ReparacionProformaService
+from ..services.venta_service import ReparacionVentaService
 
 # Placeholder views for reparaciones app
 @login_required
@@ -53,7 +53,7 @@ def reparacion_proforma(request, pk):
     
     try:
         # Crear proforma para la reparación
-        proforma = ReparacionProformaService.crear_proforma_reparacion(
+        proforma = ReparacionVentaService.crear_proforma_reparacion(
             reparacion=reparacion,
             usuario=request.user
         )

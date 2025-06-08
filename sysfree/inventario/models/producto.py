@@ -1,8 +1,9 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 from core.models import ModeloBase
 from .categoria import Categoria
-
+from .proveedor import Proveedor
 
 class Producto(ModeloBase):
     """Modelo para productos del inventario."""
@@ -23,8 +24,14 @@ class Producto(ModeloBase):
     descripcion = models.TextField(_('descripción'), blank=True)
     precio_compra = models.DecimalField(_('precio de compra'), max_digits=10, decimal_places=2, default=0)
     precio_venta = models.DecimalField(_('precio de venta'), max_digits=10, decimal_places=2)
-    stock = models.PositiveIntegerField(_('stock'), default=0)
-    stock_minimo = models.PositiveIntegerField(_('stock mínimo'), default=0)
+    stock = models.DecimalField(_('stock'), max_digits=10, decimal_places=2, default=0)
+    stock_minimo = models.DecimalField(_('stock mínimo'), max_digits=10, decimal_places=2, default=0)
+    proveedores = models.ManyToManyField(
+        Proveedor,
+        verbose_name=_('proveedores'),
+        related_name='productos',
+        blank=True
+    )
     categoria = models.ForeignKey(
         Categoria,
         verbose_name=_('categoría'),
@@ -37,12 +44,10 @@ class Producto(ModeloBase):
     iva = models.DecimalField(_('IVA (%)'), max_digits=5, decimal_places=2, default=12.00)
     es_inventariable = models.BooleanField(_('es inventariable'), default=True)
     
-    # Campos para comercio electrónico
     mostrar_en_tienda = models.BooleanField(_('mostrar en tienda'), default=True)
     destacado = models.BooleanField(_('destacado'), default=False)
     url_slug = models.SlugField(_('URL slug'), max_length=255, blank=True)
     
-    # Campos para control de inventario
     fecha_ultima_compra = models.DateField(_('fecha última compra'), null=True, blank=True)
     fecha_ultimo_movimiento = models.DateTimeField(_('fecha último movimiento'), null=True, blank=True)
     
@@ -50,6 +55,9 @@ class Producto(ModeloBase):
         verbose_name = _('producto')
         verbose_name_plural = _('productos')
         ordering = ['nombre']
+        indexes = [
+            models.Index(fields=['codigo', 'url_slug'])
+        ]
     
     def __str__(self):
         return f"{self.codigo} - {self.nombre}"
@@ -66,9 +74,27 @@ class Producto(ModeloBase):
             return ((self.precio_venta - self.precio_compra) / self.precio_compra) * 100
         return 0
     
+    def clean(self):
+        """Valida que los precios, IVA, stock y stock mínimo no sean negativos."""
+        if self.precio_compra < 0:
+            raise ValidationError(_('El precio de compra no puede ser negativo.'))
+        if self.precio_venta < 0:
+            raise ValidationError(_('El precio de venta no puede ser negativo.'))
+        if self.iva < 0:
+            raise ValidationError(_('El IVA no puede ser negativo.'))
+        if self.stock < 0:
+            raise ValidationError(_('El stock no puede ser negativo.'))
+        if self.stock_minimo < 0:
+            raise ValidationError(_('El stock mínimo no puede ser negativo.'))
+        super().clean()
+    
     def save(self, *args, **kwargs):
-        """Sobrescribe el método save para generar el slug si está vacío."""
+        """Sincroniza el stock y genera el slug."""
         if not self.url_slug and self.nombre:
             from django.utils.text import slugify
             self.url_slug = slugify(self.nombre)
+        # Sincroniza el stock con StockAlmacen
         super().save(*args, **kwargs)
+        if self.variaciones.exists():
+            self.stock = sum(variacion.stock for variacion in self.variaciones.all())
+            self.save()
