@@ -45,6 +45,8 @@ SIMPLEUI_CONFIG = {
             'models': [
                 {'name': 'Usuarios', 'icon': 'fas fa-users', 'url': 'core/usuario/'},
                 {'name': 'Configuraciones', 'icon': 'fas fa-sliders-h', 'url': 'core/configuracionsistema/'},
+                {'name': 'Módulos', 'icon': 'fas fa-cogs', 'url': 'core/modulo/'},
+                {'name': 'Tipos de IVA', 'icon': 'fas fa-percentage', 'url': 'core/tipoiva/'},
                 {'name': 'Empresas', 'icon': 'fas fa-building', 'url': 'core/empresa/'},
                 {'name': 'Sucursales', 'icon': 'fas fa-store', 'url': 'core/sucursal/'},
                 {'name': 'Logs de Actividad', 'icon': 'fas fa-history', 'url': 'core/logactividad/'},
@@ -193,6 +195,7 @@ SIMPLEUI_ICON = {
     'core.Empresa': 'fas fa-building',
     'core.Sucursal': 'fas fa-store',
     'core.LogActividad': 'fas fa-history',
+    'core.TipoIVA': 'fas fa-percentage',
     # Modelos de la aplicación clientes
     'clientes.Cliente': 'fas fa-user',
     'clientes.ContactoCliente': 'fas fa-address-book',

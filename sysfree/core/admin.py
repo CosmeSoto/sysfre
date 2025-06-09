@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
-from .models import ConfiguracionSistema, Empresa, Sucursal, LogActividad, Usuario
+from .models import ConfiguracionSistema, Empresa, Sucursal, LogActividad, Usuario, TipoIVA
 
 
 @admin.register(ConfiguracionSistema)
@@ -117,3 +117,19 @@ class UsuarioAdmin(admin.ModelAdmin):
         }),
     )
     readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'ultimo_login')
+
+
+@admin.register(TipoIVA)
+class TipoIVAAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'codigo', 'porcentaje', 'es_default', 'activo')
+    list_filter = ('activo', 'es_default')
+    search_fields = ('nombre', 'codigo', 'descripcion')
+    fieldsets = (
+        (None, {
+            'fields': ('nombre', 'codigo', 'porcentaje', 'descripcion', 'es_default')
+        }),
+        (_('Auditoría'), {
+            'fields': ('activo', 'creado_por', 'modificado_por', 'fecha_creacion', 'fecha_modificacion')
+        }),
+    )
+    readonly_fields = ('creado_por', 'modificado_por', 'fecha_creacion', 'fecha_modificacion')
