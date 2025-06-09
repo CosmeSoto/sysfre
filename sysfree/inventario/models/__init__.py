@@ -6,7 +6,7 @@ from .almacen import Almacen
 from .lote import Lote
 from .stock_almacen import StockAlmacen
 from .contacto_proveedor import ContactoProveedor
-from .orden_compra import OrdenCompra
+from .orden_compra import OrdenCompra, ItemOrdenCompra
 from .variacion import Variacion
 
 __all__ = [
@@ -19,5 +19,6 @@ __all__ = [
     'StockAlmacen',
     'ContactoProveedor',
     'OrdenCompra',
+    'ItemOrdenCompra',
     'Variacion',
 ]

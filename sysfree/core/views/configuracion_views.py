@@ -148,3 +148,17 @@ def sucursal_edit_view(request, pk):
     }
     
     return render(request, 'core/configuracion/sucursal_form.html', context)
+
+@login_required
+@user_passes_test(es_administrador)
+def configuracion_list_view(request):
+    """Vista para listar configuraciones del sistema."""
+    
+    configuraciones = ConfiguracionSistema.objects.all()
+    
+    context = {
+        'title': _('Configuraciones del Sistema'),
+        'configuraciones': configuraciones,
+    }
+    
+    return render(request, 'core/configuracion/list.html', context)

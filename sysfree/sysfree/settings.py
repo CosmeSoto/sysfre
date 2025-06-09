@@ -129,6 +129,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Auth user model
 AUTH_USER_MODEL = 'core.Usuario'
 
+# Authentication settings
+LOGIN_REDIRECT_URL = 'core:profile'  # Redirige a /profile/ tras login
+LOGOUT_REDIRECT_URL = 'core:login'   # Redirige a /login/ tras logout
+LOGIN_URL = 'core:login'             # URL para login
+
 # Email settings
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')

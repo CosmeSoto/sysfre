@@ -313,7 +313,7 @@ class AlmacenModelTest(BaseModelTest):
 
     def test_almacen_str(self):
         almacen = Almacen.objects.create(nombre="Bodega Principal")
-        self.assertEqual(str(almacen), "Bodega Principal")
+        self.assertEqual(str(almacen), "Bodega Principal (Sin sucursal)")
 
     def test_almacen_optional_fields(self):
         self.assert_optional_fields(

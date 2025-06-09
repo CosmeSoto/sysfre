@@ -11,29 +11,27 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>{% trans 'Clave' %}</th>
-                    <th>{% trans 'Valor' %}</th>
-                    <th>{% trans 'Tipo' %}</th>
-                    <th>{% trans 'Descripción' %}</th>
+                    <th>{% trans 'Nombre de Empresa' %}</th>
+                    <th>{% trans 'RUC' %}</th>
+                    <th>{% trans 'Porcentaje IVA' %}</th>
                     <th>{% trans 'Acciones' %}</th>
                 </tr>
             </thead>
             <tbody>
                 {% for config in configuraciones %}
                 <tr>
-                    <td>{{ config.clave }}</td>
-                    <td>{{ config.valor }}</td>
-                    <td>{{ config.get_tipo_display }}</td>
-                    <td>{{ config.descripcion }}</td>
+                    <td>{{ config.NOMBRE_EMPRESA }}</td>
+                    <td>{{ config.RUC }}</td>
+                    <td>{{ config.IVA_PORCENTAJE }}</td>
                     <td>
-                        <a href="{% url 'core:configuracion_edit' config.pk %}" class="btn btn-sm">
+                        <a href="{% url 'core:configuracion_edit' %}" class="btn btn-sm">
                             {% trans 'Editar' %}
                         </a>
                     </td>
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5">{% trans 'No hay configuraciones disponibles.' %}</td>
+                    <td colspan="4">{% trans 'No hay configuraciones disponibles.' %}</td>
                 </tr>
                 {% endfor %}
             </tbody>

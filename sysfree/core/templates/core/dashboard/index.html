@@ -10,6 +10,13 @@
     
     <div class="dashboard-widgets">
         <div class="widget">
+            <h3>{% trans 'Información General' %}</h3>
+            <p>{{ mensaje_bienvenida }}</p>
+            <p>{% trans 'Empresa' %}: {{ nombre_empresa }}</p>
+            <p>{% trans 'Sucursales' %}: {{ total_sucursales }}</p>
+        </div>
+        
+        <div class="widget">
             <h3>{% trans 'Ventas' %}</h3>
             <p>{% trans 'Accede al módulo de ventas para gestionar facturas, pedidos y pagos.' %}</p>
             <a href="#" class="btn">{% trans 'Ir a Ventas' %}</a>
