@@ -4,10 +4,9 @@ from django.core.exceptions import ValidationError
 from core.models import ModeloBase
 from .producto import Producto
 from .almacen import Almacen
+from .stock_almacen import StockAlmacen
 
 class Lote(ModeloBase):
-    """Modelo para lotes de productos (por ejemplo, perecederos)."""
-    
     producto = models.ForeignKey(
         Producto,
         verbose_name=_('producto'),
@@ -34,9 +33,20 @@ class Lote(ModeloBase):
         return f"{self.producto} - Lote {self.numero_lote}"
     
     def clean(self):
-        """Valida que la cantidad no sea negativa y que las fechas sean coherentes."""
+        if self.cantidad is None:
+            raise ValidationError(_('La cantidad no puede ser nula.'))
         if self.cantidad < 0:
             raise ValidationError(_('La cantidad no puede ser negativa.'))
         if self.fecha_vencimiento and self.fecha_produccion and self.fecha_vencimiento < self.fecha_produccion:
             raise ValidationError(_('La fecha de vencimiento no puede ser anterior a la fecha de producción.'))
         super().clean()
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        stock_almacen, _ = StockAlmacen.objects.get_or_create(
+            producto=self.producto,
+            almacen=self.almacen,
+            defaults={'cantidad': self.cantidad}
+        )
+        stock_almacen.cantidad = self.cantidad
+        stock_almacen.save()

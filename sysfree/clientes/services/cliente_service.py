@@ -1,5 +1,7 @@
 from django.db.models import Q
 from django.utils.crypto import get_random_string
+from django.core.mail import send_mail
+from django.conf import settings
 from ..models import Cliente, ContactoCliente, DireccionCliente
 from core.models import Usuario
 
@@ -71,8 +73,7 @@ class ClienteService:
             
             # Enviar email con las credenciales
             if enviar_email and password:
-                # send_welcome_email(cliente, password)
-                pass
+                cls.send_welcome_email(cliente, password)
         
         return cliente, usuario, password
     
@@ -132,3 +133,42 @@ class ClienteService:
                 ).first()
             except DireccionCliente.DoesNotExist:
                 return None
+    
+    @classmethod
+    def send_welcome_email(cls, cliente, password):
+        """
+        Envía un correo de bienvenida al cliente con credenciales de acceso al portal.
+        
+        Args:
+            cliente (Cliente): Instancia del modelo Cliente
+            password (str): Contraseña generada para el usuario
+            
+        Raises:
+            ValueError: Si el cliente no tiene email válido o acceso al portal
+            Exception: Si falla el envío del correo
+        """
+        if not cliente.email or not cliente.tiene_acceso_portal:
+            raise ValueError("El cliente no tiene email válido o acceso al portal.")
+        
+        subject = "Bienvenido al Portal de Clientes de Freecom"
+        message = (
+            f"Estimado/a {cliente.nombre_completo},\n\n"
+            "Le damos la bienvenida al portal de clientes de Freecom. "
+            "A continuación, encontrará sus credenciales de acceso:\n\n"
+            f"Email: {cliente.email}\n"
+            f"Contraseña: {password}\n\n"
+            "Por seguridad, le recomendamos cambiar su contraseña al iniciar sesión.\n"
+            "Acceda al portal en: https://freecom.com/portal\n\n"
+            "Gracias por confiar en nosotros,\n"
+            "Equipo Freecom"
+        )
+        from_email = settings.DEFAULT_FROM_EMAIL
+        recipient_list = [cliente.email]
+
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=from_email,
+            recipient_list=recipient_list,
+            fail_silently=False,
+        )

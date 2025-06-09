@@ -9,7 +9,7 @@ class Categoria(ModeloBase):
     
     nombre = models.CharField(_('nombre'), max_length=100)
     descripcion = models.TextField(_('descripción'), blank=True)
-    codigo = models.CharField(_('código'), max_length=20, blank=True, unique=True)  # único
+    codigo = models.CharField(_('código'), max_length=20, blank=True, null=True, unique=True)
     imagen = models.ImageField(_('imagen'), upload_to='categorias/', blank=True, null=True)
     categoria_padre = models.ForeignKey(
         'self',
@@ -45,7 +45,6 @@ class Categoria(ModeloBase):
 
     @property
     def ruta_completa(self):
-        """Retorna la ruta completa de la categoría (incluyendo padres)."""
         if self.categoria_padre:
             return f"{self.categoria_padre.ruta_completa} > {self.nombre}"
         return self.nombre

@@ -15,6 +15,7 @@ SIMPLEUI_HOME_ICON = 'fas fa-store'  # Icono representativo para el sistema
 SIMPLEUI_HOME_INFO = False  # Ocultar información rápida para un diseño limpio
 SIMPLEUI_HOME_QUICK = True  # Mostrar acciones rápidas
 SIMPLEUI_HOME_ACTION = True  # Permitir acciones en la página de inicio
+# SIMPLEUI_HOME_PAGE = '/admin/reportes/reporte/'  # Enlace a reportes para estadísticas
 
 # Deshabilitar análisis para mejorar la privacidad
 SIMPLEUI_ANALYSIS = False
@@ -54,8 +55,8 @@ SIMPLEUI_CONFIG = {
             'icon': 'fas fa-user-friends',
             'models': [
                 {'name': 'Clientes', 'icon': 'fas fa-user', 'url': 'clientes/cliente/'},
-                {'name': 'Contactos', 'icon': 'fas fa-address-book', 'url': 'clientes/contactocliente/'},
-                {'name': 'Direcciones', 'icon': 'fas fa-map-marker-alt', 'url': 'clientes/direccioncliente/'},
+                # {'name': 'Contactos', 'icon': 'fas fa-address-book', 'url': 'clientes/contactocliente/'},
+                # {'name': 'Direcciones', 'icon': 'fas fa-map-marker-alt', 'url': 'clientes/direccioncliente/'},
             ],
         },
         {

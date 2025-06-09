@@ -246,10 +246,10 @@ LOGGING = {
             'backupCount': 10,
         },
         'console': {
-            'level': 'INFO',
+            'level': 'DEBUG',  # Cambiado a DEBUG para ver todos los logs
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
-            'filters': ['require_debug_true'],
+            # Eliminado el filtro require_debug_true
         },
         'mail_admins': {
             'level': 'ERROR',
@@ -259,7 +259,7 @@ LOGGING = {
     },
     'loggers': {
         'django': {
-            'handlers': ['sysfree_file', 'console'],  # Usar el nuevo handler
+            'handlers': ['sysfree_file', 'console'],
             'level': 'INFO',
             'propagate': True,
         },
@@ -274,13 +274,23 @@ LOGGING = {
             'propagate': False,
         },
         'django.db.backends': {
-            'handlers': ['sysfree_file'],  # Usar el nuevo handler
+            'handlers': ['sysfree_file'],
             'level': 'INFO',
             'propagate': False,
         },
         'sysfree': {
             'handlers': ['sysfree_file', 'error_file', 'console'],
             'level': 'INFO',
+            'propagate': False,
+        },
+        'inventario.signals': {
+            'handlers': ['console', 'sysfree_file'],
+            'level': 'DEBUG',  # Asegurar que los logs de señales sean visibles
+            'propagate': False,
+        },
+        'inventario.services': {
+            'handlers': ['console', 'sysfree_file'],
+            'level': 'DEBUG',  # Asegurar que los logs del servicio sean visibles
             'propagate': False,
         },
         '': {  # Root logger

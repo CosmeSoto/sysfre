@@ -5,16 +5,49 @@ from django.db.utils import IntegrityError
 from datetime import date, timedelta
 from decimal import Decimal
 
-from inventario.models import (
-    Categoria, Proveedor, Producto, MovimientoInventario,
-    Almacen, StockAlmacen, Variacion, Lote, OrdenCompra, ItemOrdenCompra, ContactoProveedor
-)
+from inventario.models.categoria import Categoria
+from inventario.models.producto import Producto
+from inventario.models.proveedor import Proveedor
+from inventario.models.almacen import Almacen
+from inventario.models.stock_almacen import StockAlmacen
+from inventario.models.variacion import Variacion
+from inventario.models.lote import Lote
+from inventario.models.orden_compra import OrdenCompra, ItemOrdenCompra
+from inventario.models.contacto_proveedor import ContactoProveedor
+from inventario.models.movimiento import MovimientoInventario
 
-class CategoriaModelTest(TestCase):
-    """Pruebas para el modelo Categoria."""
 
+class BaseModelTest(TestCase):
+    def assert_max_length(self, model_class, field_name, max_length, valid_value, invalid_value, base_data):
+        """Verifica la longitud máxima de un campo."""
+        data = base_data.copy()
+        data[field_name] = valid_value
+        instance = model_class(**data)
+        instance.full_clean()
+        
+        data[field_name] = invalid_value
+        with self.assertRaisesMessage(ValidationError, f'Asegúrese de que este valor tenga menos de {max_length} caracteres'):
+            instance = model_class(**data)
+            instance.full_clean()
+
+    def assert_optional_fields(self, model_class, optional_fields, required_fields, setup_data):
+        """Verifica que los campos opcionales puedan estar vacíos y los requeridos no."""
+        data = setup_data.copy()
+        for field in optional_fields:
+            data[field] = "" if isinstance(data.get(field), str) else None
+        instance = model_class(**data)
+        instance.full_clean()
+
+        for field in required_fields:
+            data = setup_data.copy()
+            data[field] = "" if isinstance(data.get(field), str) else None
+            with self.assertRaises(ValidationError):
+                instance = model_class(**data)
+                instance.full_clean()
+
+
+class CategoriaModelTest(BaseModelTest):
     def test_categoria_creacion(self):
-        """Verifica la creación de una categoría."""
         categoria = Categoria.objects.create(
             nombre="Electrónica",
             descripcion="Productos electrónicos",
@@ -29,18 +62,15 @@ class CategoriaModelTest(TestCase):
         self.assertTrue(isinstance(categoria, Categoria))
 
     def test_categoria_str(self):
-        """Verifica el método __str__ de Categoria."""
         categoria = Categoria.objects.create(nombre="Electrónica")
         self.assertEqual(str(categoria), "Electrónica")
 
     def test_categoria_codigo_unico(self):
-        """Verifica que el campo codigo sea único."""
         Categoria.objects.create(nombre="Electrónica", codigo="ELEC")
         with self.assertRaises(IntegrityError):
             Categoria.objects.create(nombre="Gadgets", codigo="ELEC")
 
     def test_categoria_relacion_padre(self):
-        """Verifica la relación padre-hijo de Categoria."""
         parent_categoria = Categoria.objects.create(nombre="Electrónica")
         child_categoria = Categoria.objects.create(
             nombre="Televisores",
@@ -50,7 +80,6 @@ class CategoriaModelTest(TestCase):
         self.assertIn(child_categoria, parent_categoria.subcategorias.all())
 
     def test_categoria_ruta_completa(self):
-        """Verifica la propiedad ruta_completa de Categoria."""
         parent1 = Categoria.objects.create(nombre="Electrónica")
         parent2 = Categoria.objects.create(
             nombre="Televisores",
@@ -65,51 +94,68 @@ class CategoriaModelTest(TestCase):
         self.assertEqual(child.ruta_completa, "Electrónica > Televisores > Smart TVs")
 
     def test_categoria_ordenamiento(self):
-        """Verifica el ordenamiento de categorías por orden y nombre."""
-        categoria1 = Categoria.objects.create(nombre="Zapatillas", orden=2)
+        categoria1 = Categoria.objects.create(nombre="Zapatillas", orden=1)
         categoria2 = Categoria.objects.create(nombre="Camisetas", orden=1)
-        categoria3 = Categoria.objects.create(nombre="Accesorios", orden=1)
+        categoria3 = Categoria.objects.create(nombre="Accesorios", orden=2)
         categorias = Categoria.objects.all()
-        self.assertEqual(categorias[0].nombre, "Accesorios")
-        self.assertEqual(categorias[1].nombre, "Camisetas")
-        self.assertEqual(categorias[2].nombre, "Zapatillas")
+        self.assertEqual(categorias[0].nombre, "Camisetas")
+        self.assertEqual(categorias[1].nombre, "Zapatillas")
+        self.assertEqual(categorias[2].nombre, "Accesorios")
 
     def test_categoria_no_ciclo(self):
-        """Verifica que una categoría no pueda ser su propio padre."""
         categoria = Categoria.objects.create(nombre="Electrónica")
         categoria.categoria_padre = categoria
         with self.assertRaisesMessage(ValidationError, 'Una categoría no puede ser su propio padre.'):
             categoria.full_clean()
 
+    def test_categoria_ciclo_indirecto(self):
+        cat_a = Categoria.objects.create(nombre="A")
+        cat_b = Categoria.objects.create(nombre="B", categoria_padre=cat_a)
+        cat_c = Categoria.objects.create(nombre="C", categoria_padre=cat_b)
+        cat_a.categoria_padre = cat_c
+        with self.assertRaisesMessage(ValidationError, 'Una categoría no puede ser su propio padre.'):
+            cat_a.full_clean()
+
     def test_categoria_orden_no_negativo(self):
-        """Verifica que el orden no sea negativo."""
         with self.assertRaisesMessage(ValidationError, 'El orden no puede ser negativo.'):
             categoria = Categoria(nombre="Electrónica", orden=-1)
             categoria.full_clean()
 
-    # Nuevos tests
-    def test_categoria_imagen_opcional(self):
-        """Verifica que el campo imagen pueda ser nulo."""
+    def test_categoria_imagen_nullable(self):
         categoria = Categoria.objects.create(nombre="Electrónica", imagen=None)
-        self.assertIsNone(categoria.imagen)
+        self.assertFalse(categoria.imagen)
 
     def test_categoria_nombre_max_length(self):
-        """Verifica la longitud máxima del campo nombre."""
-        with self.assertRaises(ValidationError):
-            categoria = Categoria(nombre="A" * 101)
-            categoria.full_clean()
+        self.assert_max_length(
+            model_class=Categoria,
+            field_name="nombre",
+            max_length=100,
+            valid_value="A" * 100,
+            invalid_value="A" * 101,
+            base_data={"nombre": "Test", "codigo": None}
+        )
 
     def test_categoria_codigo_max_length(self):
-        """Verifica la longitud máxima del campo codigo."""
-        with self.assertRaises(ValidationError):
-            categoria = Categoria(nombre="Electrónica", codigo="A" * 21)
-            categoria.full_clean()
+        self.assert_max_length(
+            model_class=Categoria,
+            field_name="codigo",
+            max_length=20,
+            valid_value="A" * 20,
+            invalid_value="A" * 21,
+            base_data={"nombre": "Test", "codigo": None}
+        )
 
-class ProveedorModelTest(TestCase):
-    """Pruebas para el modelo Proveedor."""
+    def test_categoria_campos_opcionales(self):
+        self.assert_optional_fields(
+            model_class=Categoria,
+            optional_fields=["descripcion", "imagen", "codigo", "categoria_padre"],
+            required_fields=["nombre"],
+            setup_data={"nombre": "Electrónica", "descripcion": "Test", "codigo": "ELEC"}
+        )
 
+
+class ProveedorModelTest(BaseModelTest):
     def test_proveedor_creacion(self):
-        """Verifica la creación de un proveedor."""
         proveedor = Proveedor.objects.create(
             nombre="Tech Supplier",
             ruc="1234567890001",
@@ -131,18 +177,15 @@ class ProveedorModelTest(TestCase):
         self.assertTrue(isinstance(proveedor, Proveedor))
 
     def test_proveedor_str(self):
-        """Verifica el método __str__ de Proveedor."""
         proveedor = Proveedor.objects.create(nombre="Tech Supplier", ruc="1234567890001")
         self.assertEqual(str(proveedor), "Tech Supplier")
 
     def test_proveedor_ruc_unico(self):
-        """Verifica que el campo ruc sea único."""
         Proveedor.objects.create(nombre="Tech Supplier", ruc="1234567890001")
         with self.assertRaises(IntegrityError):
             Proveedor.objects.create(nombre="Other Supplier", ruc="1234567890001")
 
     def test_proveedor_limite_credito_no_negativo(self):
-        """Verifica que el límite de crédito no sea negativo."""
         with self.assertRaisesMessage(ValidationError, 'El límite de crédito no puede ser negativo.'):
             proveedor = Proveedor(
                 nombre="Tech Supplier",
@@ -151,40 +194,40 @@ class ProveedorModelTest(TestCase):
             )
             proveedor.full_clean()
 
-    # Nuevos tests
-    def test_proveedor_campos_opcionales(self):
-        """Verifica que los campos opcionales puedan estar vacíos."""
-        proveedor = Proveedor.objects.create(
-            nombre="Tech Supplier",
-            ruc="1234567890001",
-            direccion="",
-            telefono="",
-            email="",
-            sitio_web="",
-            notas=""
+    def test_proveedor_optional_fields(self):
+        self.assert_optional_fields(
+            model_class=Proveedor,
+            optional_fields=["direccion", "telefono", "email", "sitio_web", "notas"],
+            required_fields=["nombre", "ruc"],
+            setup_data={
+                "nombre": "Tech Supplier",
+                "ruc": "1234567890001",
+                "direccion": "Test",
+                "telefono": "123",
+                "email": "test@test.com",
+                "sitio_web": "http://test.com",
+                "notas": "Test"
+            }
         )
-        self.assertEqual(proveedor.direccion, "")
-        self.assertEqual(proveedor.telefono, "")
-        self.assertEqual(proveedor.email, "")
-        self.assertEqual(proveedor.sitio_web, "")
-        self.assertEqual(proveedor.notas, "")
 
     def test_proveedor_ruc_max_length(self):
-        """Verifica la longitud máxima del campo ruc."""
-        with self.assertRaises(ValidationError):
-            proveedor = Proveedor(nombre="Tech Supplier", ruc="A" * 14)
-            proveedor.full_clean()
+        self.assert_max_length(
+            model_class=Proveedor,
+            field_name="ruc",
+            max_length=13,
+            valid_value="A" * 13,
+            invalid_value="A" * 14,
+            base_data={"nombre": "Test", "ruc": "1234567890001"}
+        )
 
     def test_proveedor_estado_choices(self):
-        """Verifica los valores posibles del campo estado."""
         proveedor_activo = Proveedor.objects.create(nombre="Supplier1", ruc="1234567890001", estado='activo')
         proveedor_inactivo = Proveedor.objects.create(nombre="Supplier2", ruc="9876543210001", estado='inactivo')
         self.assertEqual(proveedor_activo.estado, 'activo')
         self.assertEqual(proveedor_inactivo.estado, 'inactivo')
 
-class ContactoProveedorModelTest(TestCase):
-    """Pruebas para el modelo ContactoProveedor."""
 
+class ContactoProveedorModelTest(BaseModelTest):
     def setUp(self):
         self.proveedor = Proveedor.objects.create(
             nombre="Tech Supplier",
@@ -192,7 +235,6 @@ class ContactoProveedorModelTest(TestCase):
         )
 
     def test_contacto_creacion(self):
-        """Verifica la creación de un contacto de proveedor."""
         contacto = ContactoProveedor.objects.create(
             proveedor=self.proveedor,
             nombre="Ana Lopez",
@@ -208,7 +250,6 @@ class ContactoProveedorModelTest(TestCase):
         self.assertTrue(isinstance(contacto, ContactoProveedor))
 
     def test_contacto_str(self):
-        """Verifica el método __str__ de ContactoProveedor."""
         contacto = ContactoProveedor.objects.create(
             proveedor=self.proveedor,
             nombre="Ana Lopez"
@@ -216,7 +257,6 @@ class ContactoProveedorModelTest(TestCase):
         self.assertEqual(str(contacto), f"Ana Lopez ({self.proveedor})")
 
     def test_contacto_relacion(self):
-        """Verifica la relación con Proveedor."""
         contacto = ContactoProveedor.objects.create(
             proveedor=self.proveedor,
             nombre="Ana Lopez"
@@ -224,22 +264,21 @@ class ContactoProveedorModelTest(TestCase):
         self.assertEqual(contacto.proveedor, self.proveedor)
         self.assertIn(contacto, self.proveedor.contactos.all())
 
-    # Nuevos tests
-    def test_contacto_campos_opcionales(self):
-        """Verifica que los campos opcionales puedan estar vacíos."""
-        contacto = ContactoProveedor.objects.create(
-            proveedor=self.proveedor,
-            nombre="Ana Lopez",
-            telefono="",
-            email="",
-            cargo=""
+    def test_contacto_optional_fields(self):
+        self.assert_optional_fields(
+            model_class=ContactoProveedor,
+            optional_fields=["telefono", "email", "cargo"],
+            required_fields=["proveedor", "nombre"],
+            setup_data={
+                "proveedor": self.proveedor,
+                "nombre": "Ana Lopez",
+                "telefono": "123",
+                "email": "test@test.com",
+                "cargo": "Test"
+            }
         )
-        self.assertEqual(contacto.telefono, "")
-        self.assertEqual(contacto.email, "")
-        self.assertEqual(contacto.cargo, "")
 
     def test_contacto_cascade_deletion(self):
-        """Verifica que se eliminen los contactos al eliminar el proveedor."""
         contacto = ContactoProveedor.objects.create(
             proveedor=self.proveedor,
             nombre="Ana Lopez"
@@ -248,16 +287,18 @@ class ContactoProveedorModelTest(TestCase):
         self.assertFalse(ContactoProveedor.objects.filter(id=contacto.id).exists())
 
     def test_contacto_nombre_max_length(self):
-        """Verifica la longitud máxima del campo nombre."""
-        with self.assertRaises(ValidationError):
-            contacto = ContactoProveedor(proveedor=self.proveedor, nombre="A" * 101)
-            contacto.full_clean()
+        self.assert_max_length(
+            model_class=ContactoProveedor,
+            field_name="nombre",
+            max_length=100,
+            valid_value="A" * 100,
+            invalid_value="A" * 101,
+            base_data={"proveedor": self.proveedor, "nombre": "Test"}
+        )
 
-class AlmacenModelTest(TestCase):
-    """Pruebas para el modelo Almacen."""
 
+class AlmacenModelTest(BaseModelTest):
     def test_almacen_creacion(self):
-        """Verifica la creación de un almacén."""
         almacen = Almacen.objects.create(
             nombre="Bodega Principal",
             direccion="Av. Central 456",
@@ -271,35 +312,37 @@ class AlmacenModelTest(TestCase):
         self.assertTrue(isinstance(almacen, Almacen))
 
     def test_almacen_str(self):
-        """Verifica el método __str__ de Almacen."""
         almacen = Almacen.objects.create(nombre="Bodega Principal")
         self.assertEqual(str(almacen), "Bodega Principal")
 
-    # Nuevos tests
-    def test_almacen_campos_opcionales(self):
-        """Verifica que los campos opcionales puedan estar vacíos."""
-        almacen = Almacen.objects.create(
-            nombre="Bodega Principal",
-            direccion="",
-            responsable=""
+    def test_almacen_optional_fields(self):
+        self.assert_optional_fields(
+            model_class=Almacen,
+            optional_fields=["direccion", "responsable"],
+            required_fields=["nombre"],
+            setup_data={
+                "nombre": "Bodega Principal",
+                "direccion": "Test",
+                "responsable": "Test"
+            }
         )
-        self.assertEqual(almacen.direccion, "")
-        self.assertEqual(almacen.responsable, "")
 
     def test_almacen_activo_false(self):
-        """Verifica el campo activo con valor False."""
         almacen = Almacen.objects.create(nombre="Bodega Inactiva", activo=False)
         self.assertFalse(almacen.activo)
 
     def test_almacen_nombre_max_length(self):
-        """Verifica la longitud máxima del campo nombre."""
-        with self.assertRaises(ValidationError):
-            almacen = Almacen(nombre="A" * 101)
-            almacen.full_clean()
+        self.assert_max_length(
+            model_class=Almacen,
+            field_name="nombre",
+            max_length=100,
+            valid_value="A" * 100,
+            invalid_value="A" * 101,
+            base_data={"nombre": "Test"}
+        )
 
-class StockAlmacenModelTest(TestCase):
-    """Pruebas para el modelo StockAlmacen."""
 
+class StockAlmacenModelTest(BaseModelTest):
     def setUp(self):
         self.categoria = Categoria.objects.create(nombre="Electrónica")
         self.producto = Producto.objects.create(
@@ -312,7 +355,6 @@ class StockAlmacenModelTest(TestCase):
         self.almacen = Almacen.objects.create(nombre="Bodega Principal")
 
     def test_stock_almacen_creacion(self):
-        """Verifica la creación de un stock por almacén."""
         stock = StockAlmacen.objects.create(
             producto=self.producto,
             almacen=self.almacen,
@@ -324,7 +366,6 @@ class StockAlmacenModelTest(TestCase):
         self.assertTrue(isinstance(stock, StockAlmacen))
 
     def test_stock_almacen_str(self):
-        """Verifica el método __str__ de StockAlmacen."""
         stock = StockAlmacen.objects.create(
             producto=self.producto,
             almacen=self.almacen,
@@ -333,7 +374,6 @@ class StockAlmacenModelTest(TestCase):
         self.assertEqual(str(stock), f"{self.producto} - {self.almacen} - 10.00")
 
     def test_stock_almacen_unico(self):
-        """Verifica que la combinación producto-almacén sea única."""
         StockAlmacen.objects.create(
             producto=self.producto,
             almacen=self.almacen,
@@ -347,7 +387,6 @@ class StockAlmacenModelTest(TestCase):
             )
 
     def test_stock_almacen_cantidad_no_negativa(self):
-        """Verifica que la cantidad no sea negativa."""
         with self.assertRaisesMessage(ValidationError, 'La cantidad no puede ser negativa.'):
             stock = StockAlmacen(
                 producto=self.producto,
@@ -356,9 +395,7 @@ class StockAlmacenModelTest(TestCase):
             )
             stock.full_clean()
 
-    # Nuevos tests
     def test_stock_almacen_cascade_deletion(self):
-        """Verifica que se elimine el stock al eliminar producto o almacén."""
         stock = StockAlmacen.objects.create(
             producto=self.producto,
             almacen=self.almacen,
@@ -366,12 +403,13 @@ class StockAlmacenModelTest(TestCase):
         )
         self.producto.delete()
         self.assertFalse(StockAlmacen.objects.filter(id=stock.id).exists())
-        # Re-crear para probar eliminación de almacén
+        
         self.producto = Producto.objects.create(
             codigo="TV002",
             nombre="Smart TV 65\"",
             categoria=self.categoria,
-            precio_venta=Decimal('800.00')
+            precio_venta=Decimal('800.00'),
+            stock=Decimal('0.00')
         )
         stock = StockAlmacen.objects.create(
             producto=self.producto,
@@ -382,7 +420,6 @@ class StockAlmacenModelTest(TestCase):
         self.assertFalse(StockAlmacen.objects.filter(id=stock.id).exists())
 
     def test_stock_almacen_cantidad_precision(self):
-        """Verifica la precisión del campo cantidad."""
         stock = StockAlmacen.objects.create(
             producto=self.producto,
             almacen=self.almacen,
@@ -390,12 +427,11 @@ class StockAlmacenModelTest(TestCase):
         )
         self.assertEqual(stock.cantidad, Decimal('99999999.99'))
         with self.assertRaises(ValidationError):
-            stock.cantidad = Decimal('100000000.00')  # Excede max_digits
+            stock.cantidad = Decimal('100000000.00')
             stock.full_clean()
 
-class VariacionModelTest(TestCase):
-    """Pruebas para el modelo Variacion."""
 
+class VariacionModelTest(BaseModelTest):
     def setUp(self):
         self.categoria = Categoria.objects.create(nombre="Ropa")
         self.producto = Producto.objects.create(
@@ -407,7 +443,6 @@ class VariacionModelTest(TestCase):
         )
 
     def test_variacion_creacion(self):
-        """Verifica la creación de una variación."""
         variacion = Variacion.objects.create(
             producto=self.producto,
             atributo="Color: Azul, Talla: M",
@@ -423,7 +458,6 @@ class VariacionModelTest(TestCase):
         self.assertTrue(isinstance(variacion, Variacion))
 
     def test_variacion_str(self):
-        """Verifica el método __str__ de Variacion."""
         variacion = Variacion.objects.create(
             producto=self.producto,
             atributo="Color: Azul, Talla: M",
@@ -433,7 +467,6 @@ class VariacionModelTest(TestCase):
         self.assertEqual(str(variacion), f"{self.producto} - Color: Azul, Talla: M")
 
     def test_variacion_codigo_unico(self):
-        """Verifica que el campo codigo sea único."""
         Variacion.objects.create(
             producto=self.producto,
             atributo="Color: Azul, Talla: M",
@@ -449,7 +482,6 @@ class VariacionModelTest(TestCase):
             )
 
     def test_variacion_valores_no_negativos(self):
-        """Verifica que el stock y el precio no sean negativos."""
         with self.assertRaisesMessage(ValidationError, 'El stock no puede ser negativo.'):
             variacion = Variacion(
                 producto=self.producto,
@@ -471,7 +503,6 @@ class VariacionModelTest(TestCase):
             variacion.full_clean()
 
     def test_variacion_sincroniza_stock(self):
-        """Verifica que el stock del producto se sincronice con las variaciones."""
         variacion1 = Variacion.objects.create(
             producto=self.producto,
             atributo="Color: Azul, Talla: M",
@@ -487,11 +518,9 @@ class VariacionModelTest(TestCase):
             precio_venta=Decimal('23.00')
         )
         self.producto.refresh_from_db()
-        self.assertEqual(self.producto.stock, Decimal('8.00'))  # 5 + 3
+        self.assertEqual(self.producto.stock, Decimal('8.00'))
 
-    # Nuevos tests
-    def test_variacion_imagen_opcional(self):
-        """Verifica que el campo imagen pueda ser nulo."""
+    def test_variacion_imagen_nullable(self):
         variacion = Variacion.objects.create(
             producto=self.producto,
             atributo="Color: Azul, Talla: M",
@@ -499,21 +528,24 @@ class VariacionModelTest(TestCase):
             precio_venta=Decimal('22.00'),
             imagen=None
         )
-        self.assertIsNone(variacion.imagen)
+        self.assertFalse(variacion.imagen)
 
     def test_variacion_atributo_max_length(self):
-        """Verifica la longitud máxima del campo atributo."""
-        with self.assertRaises(ValidationError):
-            variacion = Variacion(
-                producto=self.producto,
-                atributo="A" * 101,
-                codigo="CAM001-AZUL-M",
-                precio_venta=Decimal('22.00')
-            )
-            variacion.full_clean()
+        self.assert_max_length(
+            model_class=Variacion,
+            field_name="atributo",
+            max_length=100,
+            valid_value="A" * 100,
+            invalid_value="A" * 101,
+            base_data={
+                "producto": self.producto,
+                "atributo": "Test",
+                "codigo": "TEST001",
+                "precio_venta": Decimal('20.00')
+            }
+        )
 
     def test_variacion_cascade_deletion(self):
-        """Verifica que se eliminen las variaciones al eliminar el producto."""
         variacion = Variacion.objects.create(
             producto=self.producto,
             atributo="Color: Azul, Talla: M",
@@ -523,9 +555,8 @@ class VariacionModelTest(TestCase):
         self.producto.delete()
         self.assertFalse(Variacion.objects.filter(id=variacion.id).exists())
 
-class LoteModelTest(TestCase):
-    """Pruebas para el modelo Lote."""
 
+class LoteModelTest(BaseModelTest):
     def setUp(self):
         self.categoria = Categoria.objects.create(nombre="Alimentos")
         self.producto = Producto.objects.create(
@@ -538,7 +569,6 @@ class LoteModelTest(TestCase):
         self.almacen = Almacen.objects.create(nombre="Bodega Principal")
 
     def test_lote_creacion(self):
-        """Verifica la creación de un lote."""
         lote = Lote.objects.create(
             producto=self.producto,
             numero_lote="LOTE2023-001",
@@ -556,7 +586,6 @@ class LoteModelTest(TestCase):
         self.assertTrue(isinstance(lote, Lote))
 
     def test_lote_str(self):
-        """Verifica el método __str__ de Lote."""
         lote = Lote.objects.create(
             producto=self.producto,
             numero_lote="LOTE2023-001",
@@ -566,7 +595,6 @@ class LoteModelTest(TestCase):
         self.assertEqual(str(lote), f"{self.producto} - Lote LOTE2023-001")
 
     def test_lote_cantidad_no_negativa(self):
-        """Verifica que la cantidad no sea negativa."""
         with self.assertRaisesMessage(ValidationError, 'La cantidad no puede ser negativa.'):
             lote = Lote(
                 producto=self.producto,
@@ -577,7 +605,6 @@ class LoteModelTest(TestCase):
             lote.full_clean()
 
     def test_lote_fechas_validas(self):
-        """Verifica que la fecha de vencimiento no sea anterior a la fecha de producción."""
         with self.assertRaisesMessage(ValidationError, 'La fecha de vencimiento no puede ser anterior a la fecha de producción.'):
             lote = Lote(
                 producto=self.producto,
@@ -589,9 +616,7 @@ class LoteModelTest(TestCase):
             )
             lote.full_clean()
 
-    # Nuevos tests
-    def test_lote_fechas_opcionales(self):
-        """Verifica que las fechas puedan ser nulas."""
+    def test_lote_fechas_nullable(self):
         lote = Lote.objects.create(
             producto=self.producto,
             numero_lote="LOTE2023-001",
@@ -604,18 +629,21 @@ class LoteModelTest(TestCase):
         self.assertIsNone(lote.fecha_produccion)
 
     def test_lote_numero_lote_max_length(self):
-        """Verifica la longitud máxima del campo numero_lote."""
-        with self.assertRaises(ValidationError):
-            lote = Lote(
-                producto=self.producto,
-                numero_lote="A" * 51,
-                cantidad=Decimal('100.00'),
-                almacen=self.almacen
-            )
-            lote.full_clean()
+        self.assert_max_length(
+            model_class=Lote,
+            field_name="numero_lote",
+            max_length=50,
+            valid_value="A" * 50,
+            invalid_value="A" * 51,
+            base_data={
+                "producto": self.producto,
+                "numero_lote": "TEST",
+                "cantidad": Decimal('100.00'),
+                "almacen": self.almacen
+            }
+        )
 
     def test_lote_protect_deletion(self):
-        """Verifica que no se pueda eliminar un producto o almacén con lotes asociados."""
         lote = Lote.objects.create(
             producto=self.producto,
             numero_lote="LOTE2023-001",
@@ -627,9 +655,23 @@ class LoteModelTest(TestCase):
         with self.assertRaises(IntegrityError):
             self.almacen.delete()
 
-class OrdenCompraModelTest(TestCase):
-    """Pruebas para los modelos OrdenCompra e ItemOrdenCompra."""
+    def test_lote_actualiza_stock_almacen(self):
+        lote = Lote.objects.create(
+            producto=self.producto,
+            numero_lote="LOTE2023-001",
+            cantidad=Decimal('100.00'),
+            almacen=self.almacen
+        )
+        stock_almacen = StockAlmacen.objects.get(producto=self.producto, almacen=self.almacen)
+        self.assertEqual(stock_almacen.cantidad, Decimal('100.00'))
+        
+        lote.cantidad = Decimal('150.00')
+        lote.save()
+        stock_almacen.refresh_from_db()
+        self.assertEqual(stock_almacen.cantidad, Decimal('150.00'))
 
+
+class OrdenCompraModelTest(BaseModelTest):
     def setUp(self):
         self.proveedor = Proveedor.objects.create(
             nombre="Tech Supplier",
@@ -640,11 +682,12 @@ class OrdenCompraModelTest(TestCase):
             codigo="TV001",
             nombre="Smart TV 55\"",
             categoria=self.categoria,
-            precio_venta=Decimal('600.00')
+            precio_venta=Decimal('600.00'),
+            stock=Decimal('0.00')
         )
+        self.almacen = Almacen.objects.create(nombre="Bodega Principal", activo=True)
 
     def test_orden_compra_creacion(self):
-        """Verifica la creación de una orden de compra."""
         orden = OrdenCompra.objects.create(
             proveedor=self.proveedor,
             numero="OC001",
@@ -660,7 +703,6 @@ class OrdenCompraModelTest(TestCase):
         self.assertTrue(isinstance(orden, OrdenCompra))
 
     def test_orden_compra_str(self):
-        """Verifica el método __str__ de OrdenCompra."""
         orden = OrdenCompra.objects.create(
             proveedor=self.proveedor,
             numero="OC001",
@@ -669,8 +711,7 @@ class OrdenCompraModelTest(TestCase):
         self.assertEqual(str(orden), f"Orden OC001 - {self.proveedor}")
 
     def test_orden_compra_numero_unico(self):
-        """Verifica que el campo numero sea único."""
-        OrdenCompra.objects.create(
+        orden = OrdenCompra.objects.create(
             proveedor=self.proveedor,
             numero="OC001",
             fecha=date.today()
@@ -683,7 +724,6 @@ class OrdenCompraModelTest(TestCase):
             )
 
     def test_orden_compra_total_no_negativo(self):
-        """Verifica que el total no sea negativo."""
         with self.assertRaisesMessage(ValidationError, 'El total no puede ser negativo.'):
             orden = OrdenCompra(
                 proveedor=self.proveedor,
@@ -694,7 +734,6 @@ class OrdenCompraModelTest(TestCase):
             orden.full_clean()
 
     def test_item_orden_compra_creacion(self):
-        """Verifica la creación de un ítem de orden de compra."""
         orden = OrdenCompra.objects.create(
             proveedor=self.proveedor,
             numero="OC001",
@@ -710,11 +749,10 @@ class OrdenCompraModelTest(TestCase):
         self.assertEqual(item.producto, self.producto)
         self.assertEqual(item.cantidad, Decimal('5.00'))
         self.assertEqual(item.precio_unitario, Decimal('500.00'))
-        self.assertEqual(item.subtotal, Decimal('2500.00'))  # 5 * 500
+        self.assertEqual(item.subtotal, Decimal('2500.00'))
         self.assertTrue(isinstance(item, ItemOrdenCompra))
 
     def test_item_orden_compra_str(self):
-        """Verifica el método __str__ de ItemOrdenCompra."""
         orden = OrdenCompra.objects.create(
             proveedor=self.proveedor,
             numero="OC001",
@@ -729,7 +767,6 @@ class OrdenCompraModelTest(TestCase):
         self.assertEqual(str(item), f"{self.producto} - 5.00")
 
     def test_item_orden_compra_calculo_subtotal(self):
-        """Verifica el cálculo automático del subtotal."""
         orden = OrdenCompra.objects.create(
             proveedor=self.proveedor,
             numero="OC001",
@@ -744,12 +781,11 @@ class OrdenCompraModelTest(TestCase):
         self.assertEqual(item.subtotal, Decimal('2500.00'))
         item.cantidad = Decimal('10.00')
         item.save()
-        self.assertEqual(item.subtotal, Decimal('5000.00'))  # 10 * 500
+        self.assertEqual(item.subtotal, Decimal('5000.00'))
         orden.refresh_from_db()
         self.assertEqual(orden.total, Decimal('5000.00'))
 
     def test_item_orden_compra_valores_no_negativos(self):
-        """Verifica que la cantidad y el precio unitario no sean negativos."""
         orden = OrdenCompra.objects.create(
             proveedor=self.proveedor,
             numero="OC001",
@@ -773,9 +809,7 @@ class OrdenCompraModelTest(TestCase):
             )
             item.full_clean()
 
-    # Nuevos tests
     def test_orden_compra_estado_transiciones(self):
-        """Verifica las transiciones de estado."""
         orden = OrdenCompra.objects.create(
             proveedor=self.proveedor,
             numero="OC001",
@@ -790,7 +824,6 @@ class OrdenCompraModelTest(TestCase):
         self.assertEqual(orden.estado, 'cancelada')
 
     def test_item_orden_compra_cascade_deletion(self):
-        """Verifica que se eliminen los ítems al eliminar la orden."""
         orden = OrdenCompra.objects.create(
             proveedor=self.proveedor,
             numero="OC001",
@@ -806,7 +839,6 @@ class OrdenCompraModelTest(TestCase):
         self.assertFalse(ItemOrdenCompra.objects.filter(id=item.id).exists())
 
     def test_orden_compra_protect_deletion(self):
-        """Verifica que no se pueda eliminar un proveedor con órdenes asociadas."""
         orden = OrdenCompra.objects.create(
             proveedor=self.proveedor,
             numero="OC001",
@@ -815,21 +847,54 @@ class OrdenCompraModelTest(TestCase):
         with self.assertRaises(IntegrityError):
             self.proveedor.delete()
 
-class ProductoModelTest(TestCase):
-    """Pruebas para el modelo Producto."""
+    def test_orden_compra_completada_genera_movimiento(self):
+        orden = OrdenCompra.objects.create(
+            proveedor=self.proveedor,
+            numero="OC001",
+            fecha=date.today(),
+            estado='pendiente'
+        )
+        ItemOrdenCompra.objects.create(
+            orden_compra=orden,
+            producto=self.producto,
+            cantidad=Decimal('5.00'),
+            precio_unitario=Decimal('500.00')
+        )
+        StockAlmacen.objects.create(producto=self.producto, almacen=self.almacen, cantidad=Decimal('0.00'))
+        
+        orden.estado = 'completada'
+        orden.save()
+        movimiento = MovimientoInventario.objects.get(
+            producto=self.producto,
+            origen='compra',
+            almacen=self.almacen,
+            referencia_id=orden.id,
+            referencia_tipo='orden_compra'
+        )
+        self.assertEqual(movimiento.tipo, 'entrada')
+        self.assertEqual(movimiento.cantidad, Decimal('5.00'))
+        self.assertEqual(movimiento.costo_unitario, Decimal('500.00'))
 
+
+class ProductoModelTest(BaseModelTest):
     def setUp(self):
         self.categoria = Categoria.objects.create(nombre="Electrónica")
         self.proveedor = Proveedor.objects.create(
             nombre="Tech Supplier",
             ruc="1234567890001"
         )
-
-    def test_producto_creacion(self):
-        """Verifica la creación de un producto."""
-        producto = Producto.objects.create(
+        self.producto = Producto.objects.create(
             codigo="TV001",
             nombre="Smart TV 55\"",
+            categoria=self.categoria,
+            precio_venta=Decimal('600.00'),
+            stock=Decimal('0.00')
+        )
+
+    def test_producto_creacion(self):
+        producto = Producto.objects.create(
+            codigo="TV002",
+            nombre="Smart TV 65\"",
             descripcion="Televisor LED 4K",
             precio_compra=Decimal('400.00'),
             precio_venta=Decimal('600.00'),
@@ -842,8 +907,8 @@ class ProductoModelTest(TestCase):
             destacado=True
         )
         producto.proveedores.add(self.proveedor)
-        self.assertEqual(producto.codigo, "TV001")
-        self.assertEqual(producto.nombre, "Smart TV 55\"")
+        self.assertEqual(producto.codigo, "TV002")
+        self.assertEqual(producto.nombre, "Smart TV 65\"")
         self.assertEqual(producto.descripcion, "Televisor LED 4K")
         self.assertEqual(producto.precio_compra, Decimal('400.00'))
         self.assertEqual(producto.precio_venta, Decimal('600.00'))
@@ -854,41 +919,27 @@ class ProductoModelTest(TestCase):
         self.assertTrue(producto.es_inventariable)
         self.assertTrue(producto.mostrar_en_tienda)
         self.assertTrue(producto.destacado)
-        self.assertEqual(producto.url_slug, "smart-tv-55")
+        self.assertEqual(producto.url_slug, "smart-tv-65")
         self.assertIn(self.proveedor, producto.proveedores.all())
         self.assertTrue(isinstance(producto, Producto))
 
     def test_producto_str(self):
-        """Verifica el método __str__ de Producto."""
-        producto = Producto.objects.create(
-            codigo="TV001",
-            nombre="Smart TV 55\"",
-            categoria=self.categoria,
-            precio_venta=Decimal('600.00')
-        )
-        self.assertEqual(str(producto), "TV001 - Smart TV 55\"")
+        self.assertEqual(str(self.producto), "TV001 - Smart TV 55\"")
 
     def test_producto_codigo_unico(self):
-        """Verifica que el campo codigo sea único."""
-        Producto.objects.create(
-            codigo="TV001",
-            nombre="Smart TV 55\"",
-            categoria=self.categoria,
-            precio_venta=Decimal('600.00')
-        )
         with self.assertRaises(IntegrityError):
             Producto.objects.create(
                 codigo="TV001",
                 nombre="Smart TV 65\"",
                 categoria=self.categoria,
-                precio_venta=Decimal('800.00')
+                precio_venta=Decimal('800.00'),
+                stock=Decimal('0.00')
             )
 
     def test_producto_disponible(self):
-        """Verifica la propiedad disponible de Producto."""
         producto_activo = Producto.objects.create(
-            codigo="TV001",
-            nombre="Smart TV 55\"",
+            codigo="TV002",
+            nombre="Smart TV 65\"",
             categoria=self.categoria,
             precio_venta=Decimal('600.00'),
             stock=Decimal('5.00'),
@@ -898,8 +949,8 @@ class ProductoModelTest(TestCase):
         self.assertTrue(producto_activo.disponible)
 
         producto_inactivo = Producto.objects.create(
-            codigo="TV002",
-            nombre="Smart TV 65\"",
+            codigo="TV003",
+            nombre="Smart TV 75\"",
             categoria=self.categoria,
             precio_venta=Decimal('800.00'),
             stock=Decimal('5.00'),
@@ -909,8 +960,8 @@ class ProductoModelTest(TestCase):
         self.assertFalse(producto_inactivo.disponible)
 
         producto_sin_stock = Producto.objects.create(
-            codigo="TV003",
-            nombre="Smart TV 75\"",
+            codigo="TV004",
+            nombre="Smart TV 85\"",
             categoria=self.categoria,
             precio_venta=Decimal('1000.00'),
             stock=Decimal('0.00'),
@@ -931,37 +982,37 @@ class ProductoModelTest(TestCase):
         self.assertTrue(producto_no_inventariable.disponible)
 
     def test_producto_margen(self):
-        """Verifica la propiedad margen de Producto."""
         producto = Producto.objects.create(
-            codigo="TV001",
-            nombre="Smart TV 55\"",
-            categoria=self.categoria,
-            precio_compra=Decimal('400.00'),
-            precio_venta=Decimal('600.00')
-        )
-        self.assertEqual(producto.margen, Decimal('50.0'))  # (600 - 400) / 400 * 100
-
-        producto_sin_compra = Producto.objects.create(
             codigo="TV002",
             nombre="Smart TV 65\"",
             categoria=self.categoria,
+            precio_compra=Decimal('400.00'),
+            precio_venta=Decimal('600.00'),
+            stock=Decimal('0.00')
+        )
+        self.assertEqual(producto.margen, Decimal('50.0'))
+
+        producto_sin_compra = Producto.objects.create(
+            codigo="TV003",
+            nombre="Smart TV 75\"",
+            categoria=self.categoria,
             precio_compra=Decimal('0.00'),
-            precio_venta=Decimal('800.00')
+            precio_venta=Decimal('800.00'),
+            stock=Decimal('0.00')
         )
         self.assertEqual(producto_sin_compra.margen, Decimal('0.0'))
 
     def test_producto_url_slug(self):
-        """Verifica la generación automática del url_slug."""
         producto = Producto.objects.create(
-            codigo="TV001",
-            nombre="Smart TV 55\"",
+            codigo="TV002",
+            nombre="Smart TV 65\"",
             categoria=self.categoria,
-            precio_venta=Decimal('600.00')
+            precio_venta=Decimal('600.00'),
+            stock=Decimal('0.00')
         )
-        self.assertEqual(producto.url_slug, "smart-tv-55")
+        self.assertEqual(producto.url_slug, "smart-tv-65")
 
     def test_producto_valores_no_negativos(self):
-        """Verifica que los precios, IVA, stock y stock mínimo no sean negativos."""
         for field, error_msg in [
             ('precio_compra', 'El precio de compra no puede ser negativo.'),
             ('precio_venta', 'El precio de venta no puede ser negativo.'),
@@ -969,36 +1020,37 @@ class ProductoModelTest(TestCase):
             ('stock', 'El stock no puede ser negativo.'),
             ('stock_minimo', 'El stock mínimo no puede ser negativo.')
         ]:
+            data = {
+                "codigo": f"TEST{field}",
+                "nombre": "Test",
+                "categoria": self.categoria,
+                "precio_venta": Decimal('600.00'),
+                "stock": Decimal('0.00'),
+                field: Decimal('-1.00')
+            }
             with self.assertRaisesMessage(ValidationError, error_msg):
-                producto = Producto(
-                    codigo="TV001",
-                    nombre="Smart TV 55\"",
-                    categoria=self.categoria,
-                    precio_venta=Decimal('600.00'),
-                    **{field: Decimal('-1.00')}
-                )
+                producto = Producto(**data)
                 producto.full_clean()
 
-    # Nuevos tests
-    def test_producto_imagen_opcional(self):
-        """Verifica que el campo imagen pueda ser nulo."""
+    def test_producto_imagen_nullable(self):
         producto = Producto.objects.create(
-            codigo="TV001",
-            nombre="Smart TV 55\"",
+            codigo="TV002",
+            nombre="Smart TV 65\"",
             categoria=self.categoria,
             precio_venta=Decimal('600.00'),
+            stock=Decimal('0.00'),
             imagen=None
         )
-        self.assertIsNone(producto.imagen)
+        self.assertFalse(producto.imagen)
 
     def test_producto_proveedores_multiple(self):
-        """Verifica la relación many-to-many con proveedores."""
         proveedor2 = Proveedor.objects.create(nombre="Supplier2", ruc="9876543210001")
         producto = Producto.objects.create(
-            codigo="TV001",
-            nombre="Smart TV 55\"",
+            codigo="TV002",
+            nombre="Smart TV 65\"",
             categoria=self.categoria,
-            precio_venta=Decimal('600.00')
+            precio_venta=Decimal('600.00'),
+            stock=Decimal('0.00')
         )
         producto.proveedores.add(self.proveedor, proveedor2)
         self.assertEqual(producto.proveedores.count(), 2)
@@ -1006,20 +1058,21 @@ class ProductoModelTest(TestCase):
         self.assertEqual(producto.proveedores.count(), 1)
 
     def test_producto_estado_y_tipo_choices(self):
-        """Verifica los valores posibles de estado y tipo."""
         producto_activo = Producto.objects.create(
-            codigo="TV001",
-            nombre="Smart TV 55\"",
+            codigo="TV002",
+            nombre="Smart TV 65\"",
             categoria=self.categoria,
             precio_venta=Decimal('600.00'),
+            stock=Decimal('0.00'),
             estado='activo',
             tipo='producto'
         )
         producto_inactivo = Producto.objects.create(
-            codigo="TV002",
-            nombre="Smart TV 65\"",
+            codigo="TV003",
+            nombre="Smart TV 75\"",
             categoria=self.categoria,
             precio_venta=Decimal('800.00'),
+            stock=Decimal('0.00'),
             estado='inactivo',
             tipo='servicio'
         )
@@ -1029,19 +1082,57 @@ class ProductoModelTest(TestCase):
         self.assertEqual(producto_inactivo.tipo, 'servicio')
 
     def test_producto_codigo_max_length(self):
-        """Verifica la longitud máxima del campo codigo."""
-        with self.assertRaises(ValidationError):
-            producto = Producto(
-                codigo="A" * 51,
-                nombre="Smart TV 55\"",
-                categoria=self.categoria,
-                precio_venta=Decimal('600.00')
-            )
-            producto.full_clean()
+        self.assert_max_length(
+            model_class=Producto,
+            field_name="codigo",
+            max_length=50,
+            valid_value="A" * 50,
+            invalid_value="A" * 51,
+            base_data={
+                "codigo": "TEST",
+                "nombre": "Test",
+                "categoria": self.categoria,
+                "precio_venta": Decimal('600.00'),
+                "stock": Decimal('0.00')
+            }
+        )
 
-class MovimientoInventarioModelTest(TestCase):
-    """Pruebas para el modelo MovimientoInventario."""
+    def test_producto_stock_actualiza_con_stock_almacen(self):
+        almacen = Almacen.objects.create(nombre="Bodega Principal")
+        self.producto.stock = Decimal('0.00')
+        self.producto.save()
+        stock_almacen = StockAlmacen.objects.create(producto=self.producto, almacen=almacen, cantidad=Decimal('10.00'))
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, Decimal('10.00'))
+        
+        stock_almacen.cantidad = Decimal('15.00')
+        stock_almacen.save()
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, Decimal('15.00'))
+        
+        stock_almacen.delete()
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, Decimal('0.00'))
 
+    def test_producto_stock_actualiza_con_variacion_eliminada(self):
+        self.producto.stock = Decimal('0.00')
+        self.producto.save()
+        variacion = Variacion.objects.create(
+            producto=self.producto,
+            atributo="Color: Azul",
+            codigo="TV001-AZUL",
+            stock=Decimal('5.00'),
+            precio_venta=Decimal('600.00')
+        )
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, Decimal('5.00'))
+        
+        variacion.delete()
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, Decimal('0.00'))
+
+
+class MovimientoInventarioModelTest(BaseModelTest):
     def setUp(self):
         self.categoria = Categoria.objects.create(nombre="Electrónica")
         self.proveedor = Proveedor.objects.create(
@@ -1070,7 +1161,6 @@ class MovimientoInventarioModelTest(TestCase):
         )
 
     def test_movimiento_creacion(self):
-        """Verifica la creación de un movimiento de inventario."""
         movimiento = MovimientoInventario.objects.create(
             tipo='entrada',
             origen='compra',
@@ -1101,7 +1191,6 @@ class MovimientoInventarioModelTest(TestCase):
         self.assertTrue(isinstance(movimiento, MovimientoInventario))
 
     def test_movimiento_str(self):
-        """Verifica el método __str__ de MovimientoInventario."""
         movimiento = MovimientoInventario.objects.create(
             tipo='entrada',
             origen='compra',
@@ -1115,7 +1204,6 @@ class MovimientoInventarioModelTest(TestCase):
         self.assertEqual(str(movimiento), f"Entrada - {self.producto} - 5.00")
 
     def test_movimiento_cantidad_no_negativa(self):
-        """Verifica que la cantidad no sea negativa."""
         with self.assertRaisesMessage(ValidationError, 'La cantidad no puede ser negativa.'):
             movimiento = MovimientoInventario(
                 tipo='entrada',
@@ -1130,7 +1218,6 @@ class MovimientoInventarioModelTest(TestCase):
             movimiento.full_clean()
 
     def test_movimiento_stock_consistente(self):
-        """Verifica que el stock_nuevo sea consistente con el tipo de movimiento."""
         with self.assertRaisesMessage(ValidationError, 'El stock nuevo no coincide con el cálculo esperado.'):
             movimiento = MovimientoInventario(
                 tipo='entrada',
@@ -1138,14 +1225,13 @@ class MovimientoInventarioModelTest(TestCase):
                 producto=self.producto,
                 cantidad=Decimal('5.00'),
                 stock_anterior=Decimal('10.00'),
-                stock_nuevo=Decimal('14.00'),  # Debería ser 15
+                stock_nuevo=Decimal('14.00'),
                 costo_unitario=Decimal('400.00'),
                 almacen=self.almacen
             )
             movimiento.full_clean()
 
     def test_movimiento_costo_unitario_entrada(self):
-        """Verifica que el costo unitario sea obligatorio para entradas."""
         with self.assertRaisesMessage(ValidationError, 'El costo unitario es obligatorio para movimientos de entrada.'):
             movimiento = MovimientoInventario(
                 tipo='entrada',
@@ -1159,13 +1245,12 @@ class MovimientoInventarioModelTest(TestCase):
             movimiento.full_clean()
 
     def test_movimiento_stock_suficiente_salida(self):
-        """Verifica que la cantidad no exceda el stock disponible para salidas."""
         with self.assertRaisesMessage(ValidationError, 'La cantidad solicitada excede el stock disponible en el almacén.'):
             movimiento = MovimientoInventario(
                 tipo='salida',
                 origen='venta',
                 producto=self.producto,
-                cantidad=Decimal('15.00'),  # Stock en almacén es 10
+                cantidad=Decimal('15.00'),
                 stock_anterior=Decimal('10.00'),
                 stock_nuevo=Decimal('0.00'),
                 almacen=self.almacen
@@ -1173,12 +1258,12 @@ class MovimientoInventarioModelTest(TestCase):
             movimiento.full_clean()
 
     def test_movimiento_lote_valido(self):
-        """Verifica que el lote corresponda al producto."""
         producto2 = Producto.objects.create(
             codigo="TV002",
             nombre="Smart TV 65\"",
             categoria=self.categoria,
-            precio_venta=Decimal('800.00')
+            precio_venta=Decimal('800.00'),
+            stock=Decimal('0.00')
         )
         lote_invalido = Lote.objects.create(
             producto=producto2,
@@ -1200,9 +1285,7 @@ class MovimientoInventarioModelTest(TestCase):
             )
             movimiento.full_clean()
 
-    # Nuevos tests
-    def test_movimiento_actualiza_stock(self):
-        """Verifica que el movimiento actualice StockAlmacen y Producto.stock."""
+    def test_movimiento_updates_stock_and_almacen(self):
         movimiento = MovimientoInventario.objects.create(
             tipo='entrada',
             origen='compra',
@@ -1219,24 +1302,42 @@ class MovimientoInventarioModelTest(TestCase):
         self.assertEqual(self.producto.stock, Decimal('15.00'))
 
     def test_movimiento_todos_tipos(self):
-        """Verifica todos los tipos de movimiento."""
-        tipos = ['entrada', 'salida', 'ajuste', 'devolucion', 'traslado']
-        for tipo in tipos:
-            stock_nuevo = Decimal('15.00') if tipo == 'entrada' else Decimal('5.00')
+        tipos = [
+            ('entrada', 'compra', Decimal('15.00'), Decimal('400.00')),
+            ('salida', 'venta', Decimal('5.00'), None),
+            ('ajuste', 'ajuste_manual', Decimal('10.00'), None),
+            ('devolucion', 'devolucion_cliente', Decimal('10.00'), None),
+            ('traslado', 'traslado', Decimal('10.00'), None)
+        ]
+        for i, (tipo, origen, expected_stock_nuevo, costo_unitario) in enumerate(tipos):
+            # Actualizar StockAlmacen para reflejar stock_anterior
+            self.stock_almacen.cantidad = Decimal('10.00')
+            self.stock_almacen.save()
+            
             movimiento = MovimientoInventario.objects.create(
                 tipo=tipo,
-                origen='compra' if tipo == 'entrada' else 'venta',
+                origen=origen,
                 producto=self.producto,
                 cantidad=Decimal('5.00'),
                 stock_anterior=Decimal('10.00'),
-                stock_nuevo=stock_nuevo,
-                costo_unitario=Decimal('400.00') if tipo == 'entrada' else None,
+                costo_unitario=costo_unitario,
                 almacen=self.almacen
             )
             self.assertEqual(movimiento.tipo, tipo)
+            # Calcular stock_nuevo esperado según la señal
+            if tipo == 'entrada':
+                self.assertEqual(movimiento.stock_nuevo, Decimal('15.00'))
+            elif tipo == 'salida':
+                self.assertEqual(movimiento.stock_nuevo, Decimal('5.00'))
+            elif tipo == 'ajuste':
+                self.assertEqual(movimiento.stock_nuevo, Decimal('5.00'))  # cantidad
+            else:
+                self.assertEqual(movimiento.stock_nuevo, Decimal('10.00'))  # stock_anterior
+            # Actualizar stock para el siguiente movimiento
+            self.stock_almacen.cantidad = movimiento.stock_nuevo
+            self.stock_almacen.save()
 
-    def test_movimiento_campos_opcionales(self):
-        """Verifica que los campos opcionales puedan ser nulos o vacíos."""
+    def test_movimiento_optional_fields(self):
         movimiento = MovimientoInventario.objects.create(
             tipo='salida',
             origen='venta',
@@ -1260,17 +1361,48 @@ class MovimientoInventarioModelTest(TestCase):
         self.assertEqual(movimiento.referencia_tipo, "")
 
     def test_movimiento_documento_max_length(self):
-        """Verifica la longitud máxima del campo documento."""
-        with self.assertRaises(ValidationError):
-            movimiento = MovimientoInventario(
-                tipo='entrada',
-                origen='compra',
-                producto=self.producto,
-                cantidad=Decimal('5.00'),
-                stock_anterior=Decimal('10.00'),
-                stock_nuevo=Decimal('15.00'),
-                costo_unitario=Decimal('400.00'),
-                almacen=self.almacen,
-                documento="A" * 51
-            )
-            movimiento.full_clean()
+        self.assert_max_length(
+            model_class=MovimientoInventario,
+            field_name="documento",
+            max_length=50,
+            valid_value="A" * 50,
+            invalid_value="A" * 51,
+            base_data={
+                "tipo": "entrada",
+                "origen": "compra",
+                "producto": self.producto,
+                "cantidad": Decimal('5.00'),
+                "stock_anterior": Decimal('10.00'),
+                "stock_nuevo": Decimal('15.00'),
+                "costo_unitario": Decimal('400.00'),
+                "almacen": self.almacen,
+                "documento": "TEST"
+            }
+        )
+
+    def test_movimiento_multi_almacen(self):
+        almacen2 = Almacen.objects.create(nombre="Bodega Secundaria")
+        StockAlmacen.objects.create(producto=self.producto, almacen=almacen2, cantidad=Decimal('5.00'))
+        
+        MovimientoInventario.objects.create(
+            tipo='entrada',
+            origen='compra',
+            producto=self.producto,
+            cantidad=Decimal('5.00'),
+            stock_anterior=Decimal('10.00'),
+            stock_nuevo=Decimal('15.00'),
+            costo_unitario=Decimal('400.00'),
+            almacen=self.almacen
+        )
+        MovimientoInventario.objects.create(
+            tipo='entrada',
+            origen='compra',
+            producto=self.producto,
+            cantidad=Decimal('3.00'),
+            stock_anterior=Decimal('5.00'),
+            stock_nuevo=Decimal('8.00'),
+            costo_unitario=Decimal('400.00'),
+            almacen=almacen2
+        )
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, Decimal('23.00'))

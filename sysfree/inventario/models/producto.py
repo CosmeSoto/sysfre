@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from core.models import ModeloBase
 from .categoria import Categoria
 from .proveedor import Proveedor
+from decimal import Decimal
 
 class Producto(ModeloBase):
     """Modelo para productos del inventario."""
@@ -64,37 +65,29 @@ class Producto(ModeloBase):
     
     @property
     def disponible(self):
-        """Indica si el producto está disponible para la venta."""
         return self.estado == 'activo' and (not self.es_inventariable or self.stock > 0)
     
     @property
     def margen(self):
-        """Calcula el margen de ganancia del producto."""
         if self.precio_compra and self.precio_compra > 0:
             return ((self.precio_venta - self.precio_compra) / self.precio_compra) * 100
         return 0
     
     def clean(self):
-        """Valida que los precios, IVA, stock y stock mínimo no sean negativos."""
-        if self.precio_compra < 0:
+        if self.precio_compra is not None and self.precio_compra < 0:
             raise ValidationError(_('El precio de compra no puede ser negativo.'))
-        if self.precio_venta < 0:
+        if self.precio_venta is not None and self.precio_venta < 0:
             raise ValidationError(_('El precio de venta no puede ser negativo.'))
-        if self.iva < 0:
+        if self.iva is not None and self.iva < 0:
             raise ValidationError(_('El IVA no puede ser negativo.'))
-        if self.stock < 0:
+        if self.stock is not None and self.stock < 0:
             raise ValidationError(_('El stock no puede ser negativo.'))
-        if self.stock_minimo < 0:
+        if self.stock_minimo is not None and self.stock_minimo < 0:
             raise ValidationError(_('El stock mínimo no puede ser negativo.'))
         super().clean()
     
     def save(self, *args, **kwargs):
-        """Sincroniza el stock y genera el slug."""
         if not self.url_slug and self.nombre:
             from django.utils.text import slugify
             self.url_slug = slugify(self.nombre)
-        # Sincroniza el stock con StockAlmacen
         super().save(*args, **kwargs)
-        if self.variaciones.exists():
-            self.stock = sum(variacion.stock for variacion in self.variaciones.all())
-            self.save()

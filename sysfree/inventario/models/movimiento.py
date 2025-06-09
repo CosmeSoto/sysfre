@@ -7,10 +7,10 @@ from .proveedor import Proveedor
 from .almacen import Almacen
 from .lote import Lote
 from .stock_almacen import StockAlmacen
+from decimal import Decimal
+from django.db.models import Sum
 
 class MovimientoInventario(ModeloBase):
-    """Modelo para registrar movimientos de inventario."""
-    
     TIPO_CHOICES = (
         ('entrada', _('Entrada')),
         ('salida', _('Salida')),
@@ -80,8 +80,12 @@ class MovimientoInventario(ModeloBase):
     
     def clean(self):
         super().clean()
+        if self.cantidad is None:
+            raise ValidationError(_('La cantidad no puede ser nula.'))
         if self.cantidad < 0:
             raise ValidationError(_('La cantidad no puede ser negativa.'))
+        if not self.almacen:
+            raise ValidationError(_('El almacén es obligatorio.'))
         if self.tipo == 'entrada':
             expected_stock = self.stock_anterior + self.cantidad
             if self.costo_unitario is None:
@@ -101,17 +105,19 @@ class MovimientoInventario(ModeloBase):
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # Actualizar StockAlmacen
         stock_almacen, _ = StockAlmacen.objects.get_or_create(
             producto=self.producto,
             almacen=self.almacen,
-            defaults={'cantidad': self.stock_nuevo}
+            defaults={'cantidad': Decimal('0.00')}
         )
         stock_almacen.cantidad = self.stock_nuevo
         stock_almacen.save()
-        # Actualizar Producto.stock (stock total en todos los almacenes)
         total_stock = StockAlmacen.objects.filter(producto=self.producto).aggregate(
-            total=models.Sum('cantidad')
-        )['total'] or 0
+            total=Sum('cantidad')
+        )['total'] or Decimal('0.00')
+        if self.producto.variaciones.exists():
+            total_stock = self.producto.variaciones.aggregate(
+                total=Sum('stock')
+            )['total'] or Decimal('0.00')
         self.producto.stock = total_stock
-        self.producto.save()
+        self.producto.save(update_fields=['stock'])

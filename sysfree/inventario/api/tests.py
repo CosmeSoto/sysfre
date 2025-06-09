@@ -2,8 +2,8 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from core.models import Usuario
-from inventario.models import Categoria, Producto, Proveedor
-
+from inventario.models import Categoria, Producto, Proveedor, Almacen, StockAlmacen
+from decimal import Decimal
 
 class CategoriaTests(APITestCase):
     def setUp(self):
@@ -75,15 +75,34 @@ class ProductoTests(APITestCase):
             descripcion='Descripción de prueba'
         )
         
+        # Crear proveedor para pruebas
+        self.proveedor = Proveedor.objects.create(
+            nombre='Proveedor Test',
+            ruc='1234567890001'
+        )
+        
+        # Crear almacén para pruebas
+        self.almacen = Almacen.objects.create(
+            nombre='Bodega Principal',
+            activo=True
+        )
+        
         # Crear producto para pruebas
         self.producto = Producto.objects.create(
             codigo='PROD001',
             nombre='Producto Test',
             descripcion='Descripción de prueba',
-            precio_compra=10.00,
-            precio_venta=15.00,
-            stock=100,
+            precio_compra=Decimal('10.00'),
+            precio_venta=Decimal('15.00'),
+            stock=Decimal('100.00'),
             categoria=self.categoria
+        )
+        
+        # Crear stock inicial en el almacén
+        StockAlmacen.objects.create(
+            producto=self.producto,
+            almacen=self.almacen,
+            cantidad=Decimal('100.00')
         )
         
         # URL para obtener token
@@ -116,13 +135,17 @@ class ProductoTests(APITestCase):
             'cantidad': 50,
             'origen': 'compra',
             'costo_unitario': 9.50,
+            'proveedor': self.proveedor.id,
+            'almacen': self.almacen.id,
             'documento': 'FACT-001',
             'notas': 'Entrada de prueba'
         }
         response = self.client.post(url, data, format='json')
+        if response.status_code != status.HTTP_201_CREATED:
+            print(f"Error en test_registrar_entrada_inventario: {response.data}")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.producto.refresh_from_db()
-        self.assertEqual(self.producto.stock, 150)  # 100 + 50
+        self.assertEqual(self.producto.stock, Decimal('150.00'))  # 100 + 50
     
     def test_registrar_salida_inventario(self):
         """
@@ -133,10 +156,13 @@ class ProductoTests(APITestCase):
         data = {
             'cantidad': 30,
             'origen': 'venta',
+            'almacen': self.almacen.id,
             'documento': 'FACT-V001',
             'notas': 'Salida de prueba'
         }
         response = self.client.post(url, data, format='json')
+        if response.status_code != status.HTTP_201_CREATED:
+            print(f"Error en test_registrar_salida_inventario: {response.data}")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.producto.refresh_from_db()
-        self.assertEqual(self.producto.stock, 70)  # 100 - 30
+        self.assertEqual(self.producto.stock, Decimal('70.00'))  # 100 - 30

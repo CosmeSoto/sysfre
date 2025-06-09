@@ -3,9 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
-from .models import Categoria, Producto, Proveedor, MovimientoInventario
-from .forms import CategoriaForm, ProductoForm, ProveedorForm, MovimientoEntradaForm, MovimientoSalidaForm
-from .services.inventario_service import InventarioService
+from inventario.models import Categoria, Producto, Proveedor, MovimientoInventario
+from inventario.forms import CategoriaForm, ProductoForm, ProveedorForm, MovimientoEntradaForm, MovimientoSalidaForm
+from inventario.services.inventario_service import InventarioService
 
 
 @login_required
