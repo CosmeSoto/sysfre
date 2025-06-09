@@ -12,6 +12,8 @@ from .models.lote import Lote
 from .models.orden_compra import OrdenCompra, ItemOrdenCompra
 from .models.stock_almacen import StockAlmacen
 from .models.variacion import Variacion
+from .models.atributo import Atributo
+from .models.valor_atributo import ValorAtributo
 
 
 class ContactoProveedorInline(admin.TabularInline):
@@ -32,8 +34,8 @@ class ItemOrdenCompraInline(admin.TabularInline):
 class VariacionInline(admin.TabularInline):
     model = Variacion
     extra = 1
-    fields = ('atributo', 'codigo', 'stock', 'precio_venta', 'imagen')
-    autocomplete_fields = ['producto']
+    fields = ('valor_atributo', 'codigo', 'stock', 'precio_venta', 'imagen')
+    autocomplete_fields = ['valor_atributo']
 
 
 @admin.register(Categoria)
@@ -263,12 +265,56 @@ class StockAlmacenAdmin(admin.ModelAdmin):
 
 @admin.register(Variacion)
 class VariacionAdmin(admin.ModelAdmin):
-    list_display = ('producto', 'atributo', 'codigo', 'stock', 'precio_venta')
-    list_filter = ('producto',)
-    search_fields = ('producto__nombre', 'producto__codigo', 'atributo', 'codigo')
+    list_display = ('producto', 'valor_atributo', 'codigo', 'stock', 'precio_venta')
+    list_filter = ('producto', 'valor_atributo__atributo')
+    search_fields = ('producto__nombre', 'producto__codigo', 'valor_atributo__valor', 'codigo')
     readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
     fieldsets = (
-        (None, {'fields': ('producto', 'atributo', 'codigo', 'stock', 'precio_venta', 'imagen')}),
+        (None, {'fields': ('producto', 'valor_atributo', 'codigo', 'stock', 'precio_venta', 'imagen')}),
         (_('Auditoría'), {'fields': ('creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )
-    autocomplete_fields = ['producto']
+    autocomplete_fields = ['producto', 'valor_atributo']
+
+
+@admin.register(Atributo)
+class AtributoAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'activo')
+    list_filter = ('activo', 'categorias')
+    search_fields = ('nombre', 'descripcion')
+    readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
+    fieldsets = (
+        (None, {'fields': ('nombre', 'descripcion', 'categorias')}),
+        (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
+    )
+    autocomplete_fields = ['categorias']
+    actions = ['activar_atributos', 'desactivar_atributos']
+
+    def activar_atributos(self, request, queryset):
+        queryset.update(activo=True)
+    activar_atributos.short_description = _('Activar atributos seleccionados')
+
+    def desactivar_atributos(self, request, queryset):
+        queryset.update(activo=False)
+    desactivar_atributos.short_description = _('Desactivar atributos seleccionados')
+
+
+@admin.register(ValorAtributo)
+class ValorAtributoAdmin(admin.ModelAdmin):
+    list_display = ('atributo', 'valor', 'codigo', 'precio_adicional', 'activo')
+    list_filter = ('atributo', 'activo')
+    search_fields = ('atributo__nombre', 'valor', 'codigo')
+    readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
+    fieldsets = (
+        (None, {'fields': ('atributo', 'valor', 'codigo', 'precio_adicional', 'imagen', 'productos')}),
+        (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
+    )
+    autocomplete_fields = ['atributo', 'productos']
+    actions = ['activar_valores', 'desactivar_valores']
+
+    def activar_valores(self, request, queryset):
+        queryset.update(activo=True)
+    activar_valores.short_description = _('Activar valores seleccionados')
+
+    def desactivar_valores(self, request, queryset):
+        queryset.update(activo=False)
+    desactivar_valores.short_description = _('Desactivar valores seleccionados')

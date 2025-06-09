@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from core.models import ModeloBase
 from .producto import Producto
 from .stock_almacen import StockAlmacen
+from .valor_atributo import ValorAtributo
 from decimal import Decimal
 from django.db.models import Sum
 from django.db.models.signals import post_delete
@@ -18,7 +19,12 @@ class Variacion(ModeloBase):
         on_delete=models.CASCADE,
         related_name='variaciones'
     )
-    atributo = models.CharField(_('atributo'), max_length=100)
+    valor_atributo = models.ForeignKey(
+        ValorAtributo,
+        verbose_name=_('valor de atributo'),
+        on_delete=models.PROTECT,
+        related_name='variaciones'
+    )
     codigo = models.CharField(_('código'), max_length=50, unique=True)
     stock = models.DecimalField(_('stock'), max_digits=10, decimal_places=2, default=0)
     precio_venta = models.DecimalField(_('precio de venta'), max_digits=10, decimal_places=2)
@@ -27,10 +33,10 @@ class Variacion(ModeloBase):
     class Meta:
         verbose_name = _('variación')
         verbose_name_plural = _('variaciones')
-        ordering = ['producto', 'atributo']
+        ordering = ['producto', 'valor_atributo']
     
     def __str__(self):
-        return f"{self.producto} - {self.atributo}"
+        return f"{self.producto} - {self.valor_atributo}"
     
     def clean(self):
         if self.stock is None:
