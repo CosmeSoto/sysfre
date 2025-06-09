@@ -72,6 +72,8 @@ SIMPLEUI_CONFIG = {
                 {'name': 'Lotes', 'icon': 'fas fa-cubes', 'url': 'inventario/lote/'},
                 {'name': 'Órdenes de Compra', 'icon': 'fas fa-file-invoice', 'url': 'inventario/ordencompra/'},
                 {'name': 'Stock por Almacén', 'icon': 'fas fa-inventory', 'url': 'inventario/stockalmacen/'},
+                {'name': 'Atributos', 'icon': 'fas fa-cog', 'url': 'inventario/atributo/'},
+                {'name': 'Valores de Atributos', 'icon': 'fas fa-list-alt', 'url': 'inventario/valoratributo/'},
                 {'name': 'Variaciones', 'icon': 'fas fa-list-ul', 'url': 'inventario/variacion/'},
             ],
         },
@@ -228,6 +230,8 @@ SIMPLEUI_ICON = {
     'inventario.Lote': 'fas fa-cubes',
     'inventario.OrdenCompra': 'fas fa-file-invoice',
     'inventario.StockAlmacen': 'fas fa-inventory',
+    'inventario.Atributo': 'fas fa-cog',
+    'inventario.ValorAtributo': 'fas fa-list-alt',
     'inventario.Variacion': 'fas fa-list-ul',
     # Modelos de la aplicación reparaciones
     'reparaciones.ServicioReparacion': 'fas fa-wrench',
