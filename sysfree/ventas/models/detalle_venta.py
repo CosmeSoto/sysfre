@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 from core.models import ModeloBase
+from core.services import IVAService
 from inventario.models import Producto
 from .venta import Venta
 
@@ -53,7 +54,11 @@ class DetalleVenta(ModeloBase):
     def save(self, *args, **kwargs):
         """Calcula subtotal y total, y actualiza el stock si la venta no es proforma."""
         self.subtotal = self.cantidad * self.precio_unitario - self.descuento
-        self.total = self.subtotal + self.iva
+        
+        # Usar el servicio IVA para calcular el IVA
+        tipo_iva = IVAService.get_by_porcentaje(self.producto.iva) or IVAService.get_default()
+        self.iva, self.total = IVAService.calcular_iva(self.subtotal, tipo_iva)
+        
         super().save(*args, **kwargs)
         if self.venta.tipo != 'proforma' and self.venta.estado in ['emitida', 'pagada'] and self.producto.es_inventariable:
             self.producto.stock -= self.cantidad

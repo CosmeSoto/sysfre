@@ -37,7 +37,7 @@ class ConfiguracionSistemaForm(forms.ModelForm):
         fields = ['NOMBRE_EMPRESA', 'RUC', 'DIRECCION', 'TELEFONO', 'EMAIL', 'SITIO_WEB',
                  'PREFIJO_FACTURA', 'PREFIJO_PROFORMA', 'PREFIJO_NOTA_VENTA', 'PREFIJO_TICKET',
                  'INICIO_FACTURA', 'INICIO_PROFORMA', 'INICIO_NOTA_VENTA', 'INICIO_TICKET',
-                 'IVA_PORCENTAJE']
+                 'tipo_iva_default']
         widgets = {
             'NOMBRE_EMPRESA': forms.TextInput(attrs={'class': 'form-control'}),
             'RUC': forms.TextInput(attrs={'class': 'form-control'}),
@@ -53,7 +53,7 @@ class ConfiguracionSistemaForm(forms.ModelForm):
             'INICIO_PROFORMA': forms.NumberInput(attrs={'class': 'form-control'}),
             'INICIO_NOTA_VENTA': forms.NumberInput(attrs={'class': 'form-control'}),
             'INICIO_TICKET': forms.NumberInput(attrs={'class': 'form-control'}),
-            'IVA_PORCENTAJE': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'tipo_iva_default': forms.Select(attrs={'class': 'form-control'}),
         }
 
 

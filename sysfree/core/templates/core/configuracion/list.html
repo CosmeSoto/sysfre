@@ -13,7 +13,7 @@
                 <tr>
                     <th>{% trans 'Nombre de Empresa' %}</th>
                     <th>{% trans 'RUC' %}</th>
-                    <th>{% trans 'Porcentaje IVA' %}</th>
+                    <th>{% trans 'IVA' %}</th>
                     <th>{% trans 'Acciones' %}</th>
                 </tr>
             </thead>
@@ -22,7 +22,7 @@
                 <tr>
                     <td>{{ config.NOMBRE_EMPRESA }}</td>
                     <td>{{ config.RUC }}</td>
-                    <td>{{ config.IVA_PORCENTAJE }}</td>
+                    <td>{% if config.tipo_iva_default %}{{ config.tipo_iva_default.nombre }} ({{ config.tipo_iva_default.porcentaje }}%){% else %}-{% endif %}</td>
                     <td>
                         <a href="{% url 'core:configuracion_edit' %}" class="btn btn-sm">
                             {% trans 'Editar' %}

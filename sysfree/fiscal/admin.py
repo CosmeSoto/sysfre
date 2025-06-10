@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
-from .models import Impuesto, PeriodoFiscal, CuentaContable, AsientoContable, LineaAsiento, Comprobante
+from .models import PeriodoFiscal, CuentaContable, AsientoContable, LineaAsiento, Comprobante
 
 
 class LineaAsientoInline(admin.TabularInline):
@@ -9,17 +9,7 @@ class LineaAsientoInline(admin.TabularInline):
     fields = ('cuenta', 'descripcion', 'debe', 'haber')
 
 
-@admin.register(Impuesto)
-class ImpuestoAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'codigo', 'porcentaje', 'activo')
-    list_filter = ('activo',)
-    search_fields = ('nombre', 'codigo', 'descripcion')
-    readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
-    
-    fieldsets = (
-        (None, {'fields': ('nombre', 'codigo', 'porcentaje', 'descripcion')}),
-        (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
-    )
+
 
 
 @admin.register(PeriodoFiscal)

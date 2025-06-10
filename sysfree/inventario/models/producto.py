@@ -1,7 +1,8 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
-from core.models import ModeloBase
+from core.models import ModeloBase, TipoIVA
+from core.services import IVAService
 from .categoria import Categoria
 from .proveedor import Proveedor
 from decimal import Decimal
@@ -42,6 +43,14 @@ class Producto(ModeloBase):
     imagen = models.ImageField(_('imagen'), upload_to='productos/', blank=True, null=True)
     estado = models.CharField(_('estado'), max_length=15, choices=ESTADO_CHOICES, default='activo')
     tipo = models.CharField(_('tipo'), max_length=10, choices=TIPO_CHOICES, default='producto')
+    tipo_iva = models.ForeignKey(
+        TipoIVA,
+        verbose_name=_('tipo de IVA'),
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='productos'
+    )
     iva = models.DecimalField(_('IVA (%)'), max_digits=5, decimal_places=2, default=12.00)
     es_inventariable = models.BooleanField(_('es inventariable'), default=True)
     
@@ -90,4 +99,13 @@ class Producto(ModeloBase):
         if not self.url_slug and self.nombre:
             from django.utils.text import slugify
             self.url_slug = slugify(self.nombre)
+            
+        # Si no tiene tipo_iva asignado, usar el predeterminado
+        if not self.tipo_iva:
+            self.tipo_iva = IVAService.get_default()
+            
+        # Sincronizar el campo iva con el porcentaje del tipo_iva
+        if self.tipo_iva:
+            self.iva = self.tipo_iva.porcentaje
+            
         super().save(*args, **kwargs)

@@ -2,20 +2,15 @@ from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from fiscal.models import Impuesto, PeriodoFiscal, CuentaContable, AsientoContable, LineaAsiento, Comprobante
+from fiscal.models import PeriodoFiscal, CuentaContable, AsientoContable, LineaAsiento, Comprobante
 from fiscal.services.contabilidad_service import ContabilidadService
 from .serializers import (
-    ImpuestoSerializer, PeriodoFiscalSerializer, CuentaContableSerializer,
+    PeriodoFiscalSerializer, CuentaContableSerializer,
     AsientoContableSerializer, LineaAsientoSerializer, ComprobanteSerializer
 )
 
 
-class ImpuestoViewSet(viewsets.ModelViewSet):
-    queryset = Impuesto.objects.all()
-    serializer_class = ImpuestoSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [filters.SearchFilter]
-    search_fields = ['nombre', 'codigo', 'descripcion']
+
 
 
 class PeriodoFiscalViewSet(viewsets.ModelViewSet):

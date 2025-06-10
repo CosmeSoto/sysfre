@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from core.models import ModeloBase
+from core.services import IVAService
 from inventario.models import Producto
 from .categoria_tienda import CategoriaEcommerce
 
@@ -61,6 +62,14 @@ class ProductoEcommerce(ModeloBase):
                 return self.precio_oferta
         
         return self.producto.precio_venta
+        
+    @property
+    def precio_con_iva(self):
+        """Retorna el precio actual con IVA incluido."""
+        precio_base = self.precio_actual
+        tipo_iva = self.producto.tipo_iva or IVAService.get_default()
+        _, precio_total = IVAService.calcular_iva(precio_base, tipo_iva)
+        return precio_total
     
     @property
     def porcentaje_descuento(self):

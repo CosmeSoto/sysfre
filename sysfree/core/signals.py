@@ -1,8 +1,9 @@
-from django.db.models.signals import pre_save, post_save
+from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
-from .models import ModeloBase
+from .models import ModeloBase, TipoIVA
 from .middleware import get_usuario_actual
+from .services import IVAService
 
 
 @receiver(pre_save)
@@ -36,3 +37,19 @@ def actualizar_ultimo_login(sender, instance, **kwargs):
     def set_ultimo_login(sender, user, request, **kwargs):
         user.ultimo_login = timezone.now()
         user.save(update_fields=['ultimo_login'])
+
+
+@receiver(post_save, sender=TipoIVA)
+def invalidar_cache_iva_al_guardar(sender, instance, **kwargs):
+    """
+    Signal para invalidar la caché de IVA cuando se modifica un TipoIVA.
+    """
+    IVAService.invalidar_cache()
+
+
+@receiver(post_delete, sender=TipoIVA)
+def invalidar_cache_iva_al_eliminar(sender, instance, **kwargs):
+    """
+    Signal para invalidar la caché de IVA cuando se elimina un TipoIVA.
+    """
+    IVAService.invalidar_cache()

@@ -5,6 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from ventas.models import Venta, DetalleVenta
 from inventario.models import Producto
 from core.models import ConfiguracionSistema
+from core.services import IVAService
 from core.log_utils import log_function_call
 
 logger = logging.getLogger('sysfree')
@@ -78,8 +79,10 @@ class VentaService:
             item_descuento = item.get('descuento', 0)
             
             subtotal_item = cantidad * precio_unitario - item_descuento
-            iva_item = subtotal_item * (producto.iva / 100)
-            total_item = subtotal_item + iva_item
+            
+            # Usar el servicio IVA para calcular el IVA
+            tipo_iva = producto.tipo_iva or IVAService.get_default()
+            iva_item, total_item = IVAService.calcular_iva(subtotal_item, tipo_iva)
             
             DetalleVenta.objects.create(
                 venta=venta,

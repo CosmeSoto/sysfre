@@ -1,11 +1,5 @@
 from rest_framework import serializers
-from fiscal.models import Impuesto, PeriodoFiscal, CuentaContable, AsientoContable, LineaAsiento, Comprobante
-
-
-class ImpuestoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Impuesto
-        fields = ['id', 'nombre', 'codigo', 'porcentaje', 'descripcion', 'activo']
+from fiscal.models import PeriodoFiscal, CuentaContable, AsientoContable, LineaAsiento, Comprobante
 
 
 class PeriodoFiscalSerializer(serializers.ModelSerializer):

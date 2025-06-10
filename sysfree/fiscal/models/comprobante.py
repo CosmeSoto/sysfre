@@ -32,7 +32,7 @@ class Comprobante(ModeloBase):
         related_name='comprobantes'
     )
     subtotal = models.DecimalField(_('subtotal'), max_digits=12, decimal_places=2, default=0)
-    impuestos = models.DecimalField(_('impuestos'), max_digits=12, decimal_places=2, default=0)
+    impuestos = models.DecimalField(_('IVA y otros impuestos'), max_digits=12, decimal_places=2, default=0)
     total = models.DecimalField(_('total'), max_digits=12, decimal_places=2, default=0)
     estado = models.CharField(_('estado'), max_length=10, choices=ESTADO_CHOICES, default='borrador')
     
@@ -67,7 +67,7 @@ class Comprobante(ModeloBase):
         if self.subtotal < 0:
             raise ValidationError(_('El subtotal no puede ser negativo.'))
         if self.impuestos < 0:
-            raise ValidationError(_('Los impuestos no pueden ser negativos.'))
+            raise ValidationError(_('El IVA y otros impuestos no pueden ser negativos.'))
         if self.total < 0:
             raise ValidationError(_('El total no puede ser negativo.'))
         super().clean()

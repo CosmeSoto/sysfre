@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from core.models.auditoria import ModeloBase
+from django.core.exceptions import ValidationError
 
 
 class ConfiguracionSistema(ModeloBase):
@@ -18,7 +19,14 @@ class ConfiguracionSistema(ModeloBase):
     INICIO_TICKET = models.PositiveIntegerField(_('inicio numeración ticket'), default=1)
     
     # Configuración de impuestos
-    IVA_PORCENTAJE = models.DecimalField(_('porcentaje IVA'), max_digits=5, decimal_places=2, default=12.00)
+    tipo_iva_default = models.ForeignKey(
+        'TipoIVA',
+        verbose_name=_('tipo de IVA predeterminado'),
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='configuraciones'
+    )
     
     # Configuración de empresa
     NOMBRE_EMPRESA = models.CharField(_('nombre de la empresa'), max_length=100, default='Mi Empresa')
@@ -44,3 +52,19 @@ class ConfiguracionSistema(ModeloBase):
     
     def __str__(self):
         return self.NOMBRE_EMPRESA
+        
+    def clean(self):
+        """Valida que el tipo_iva_default sea válido."""
+        if self.tipo_iva_default and self.tipo_iva_default.porcentaje < 0:
+            raise ValidationError(_('El porcentaje de IVA no puede ser negativo.'))
+        super().clean()
+    
+    def save(self, *args, **kwargs):
+        """Sobrescribe el método save para asegurar que haya un tipo_iva_default."""
+        from core.services import IVAService
+        
+        # Si no tiene tipo_iva_default asignado, usar el predeterminado del sistema
+        if not self.tipo_iva_default:
+            self.tipo_iva_default = IVAService.get_default()
+            
+        super().save(*args, **kwargs)
