@@ -1,106 +1,255 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
-from .models import Venta, DetalleVenta, Pago, NotaCredito, DetalleNotaCredito, Envio
-from core.services import IVAService
+from django.contrib import messages
+from django.contrib.admin.widgets import AdminSplitDateTime
+from django.db import models
+from django.utils import timezone
+from .models import Venta, DetalleVenta, Pago, Envio, NotaCredito, DetalleNotaCredito
+from .services.venta_service import VentaService
+import logging
 
+# Configurar logger
+logger = logging.getLogger('sysfree')
+
+# Inlines
 class DetalleVentaInline(admin.TabularInline):
+    """Inline para detalles de venta."""
     model = DetalleVenta
-    extra = 0
+    extra = 1
     fields = ('producto', 'cantidad', 'precio_unitario', 'descuento', 'tipo_iva', 'subtotal', 'iva', 'total')
     readonly_fields = ('subtotal', 'iva', 'total')
 
 class PagoInline(admin.TabularInline):
+    """Inline para pagos."""
     model = Pago
     extra = 0
-    fields = ('metodo', 'monto', 'referencia', 'estado')
+    fields = ('metodo', 'monto', 'referencia', 'estado', 'numero_tarjeta', 'banco')
     readonly_fields = ('fecha',)
 
-class DetalleNotaCreditoInline(admin.TabularInline):
-    model = DetalleNotaCredito
+class EnvioInline(admin.TabularInline):
+    """Inline para envíos."""
+    model = Envio
     extra = 0
+    fields = ('transportista', 'numero_seguimiento', 'estado', 'fecha_envio', 'fecha_entrega', 'notas')
+    readonly_fields = ('fecha_entrega',)
+
+class DetalleNotaCreditoInline(admin.TabularInline):
+    """Inline para detalles de nota de crédito."""
+    model = DetalleNotaCredito
+    extra = 1
     fields = ('producto', 'cantidad', 'precio_unitario', 'tipo_iva', 'subtotal', 'iva', 'total')
     readonly_fields = ('subtotal', 'iva', 'total')
 
+# Admin classes
 @admin.register(Venta)
 class VentaAdmin(admin.ModelAdmin):
-    list_display = ('numero', 'fecha', 'cliente', 'tipo', 'estado', 'total', 'esta_pagado')
-    list_filter = ('estado', 'tipo', 'fecha')
-    search_fields = ('numero', 'cliente__nombres', 'cliente__apellidos', 'cliente__nombre_comercial', 'cliente__identificacion')
-    readonly_fields = ('fecha', 'fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por', 'iva')
-    inlines = [DetalleVentaInline, PagoInline]
-    
-    def get_fieldsets(self, request, obj=None):
-        common_fields = [
-            (None, {'fields': ('numero', 'cliente', 'tipo', 'estado')}),
-            (_('Direcciones'), {'fields': ('direccion_facturacion', 'direccion_envio')}),
-            (_('Totales'), {'fields': ('subtotal', 'iva', 'descuento', 'total', 'tipo_iva')}),
-            (_('Información adicional'), {'fields': ('notas',)}),
-            (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
-        ]
-        
-        if obj and obj.tipo == 'proforma':
-            proforma_fields = [
-                (_('Proforma'), {'fields': ('validez', 'reparacion', 'venta_relacionada')}),
-            ]
-            return common_fields[:2] + proforma_fields + common_fields[2:]
-        else:
-            factura_fields = [
-                (_('Facturación electrónica'), {'fields': ('clave_acceso', 'numero_autorizacion', 'fecha_autorizacion')}),
-                (_('Fechas de seguimiento'), {'fields': ('fecha_pago', 'fecha_envio', 'fecha_entrega')}),
-                (_('Referencias'), {'fields': ('reparacion', 'venta_relacionada')}),
-            ]
-            return common_fields[:3] + factura_fields + common_fields[3:]
-    
-    def get_list_display(self, request):
-        if request.GET.get('tipo') == 'proforma':
-            return ('numero', 'fecha', 'cliente', 'estado', 'total', 'esta_vencida')
-        return self.list_display
-
-@admin.register(Pago)
-class PagoAdmin(admin.ModelAdmin):
-    list_display = ('venta', 'fecha', 'metodo', 'monto', 'estado')
-    list_filter = ('metodo', 'estado', 'fecha')
-    search_fields = ('venta__numero', 'referencia', 'notas')
-    readonly_fields = ('fecha', 'fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
-    
+    """Admin para ventas y proformas."""
+    list_display = (
+        'numero', 'fecha', 'cliente', 'tipo', 'estado', 'reparacion_numero',
+        'total', 'esta_pagado', 'esta_vencida'
+    )
+    list_filter = ('estado', 'tipo', 'fecha', 'reparacion', 'cliente')
+    search_fields = (
+        'numero', 'cliente__nombres', 'cliente__apellidos', 'cliente__email',
+        'reparacion__numero', 'clave_acceso'
+    )
+    readonly_fields = (
+        'fecha', 'numero', 'subtotal', 'total', 'iva', 'fecha_creacion',
+        'fecha_modificacion', 'creado_por', 'modificado_por'
+    )
+    inlines = [DetalleVentaInline, PagoInline, EnvioInline]
+    date_hierarchy = 'fecha'
+    formfield_overrides = {
+        models.DateTimeField: {'widget': AdminSplitDateTime},
+    }
     fieldsets = (
-        (None, {'fields': ('venta', 'metodo', 'monto', 'referencia', 'estado')}),
-        (_('Detalles de pago'), {
-            'fields': (
-                'numero_tarjeta', 'titular_tarjeta',
-                'banco', 'numero_cuenta',
-                'numero_cheque', 'banco_cheque'
-            ),
-            'classes': ('collapse',),
-        }),
-        (_('Información adicional'), {'fields': ('notas',)}),
+        (None, {'fields': ('numero', 'fecha', 'cliente', 'tipo', 'estado')}),
+        (_('Direcciones'), {'fields': ('direccion_facturacion', 'direccion_envio')}),
+        (_('Totales'), {'fields': ('subtotal', 'descuento', 'tipo_iva', 'iva', 'total')}),
+        (_('Referencias'), {'fields': ('reparacion', 'venta_relacionada')}),
+        (_('Facturación electrónica'), {'fields': ('clave_acceso', 'numero_autorizacion', 'fecha_autorizacion')}),
+        (_('Fechas'), {'fields': ('fecha_pago', 'fecha_envio', 'fecha_entrega', 'validez')}),
+        (_('Notas'), {'fields': ('notas',)}),
         (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )
 
-@admin.register(NotaCredito)
-class NotaCreditoAdmin(admin.ModelAdmin):
-    list_display = ('numero', 'fecha', 'venta', 'cliente', 'estado', 'total')
-    list_filter = ('estado', 'fecha')
-    search_fields = ('numero', 'venta__numero', 'cliente__nombres', 'cliente__apellidos', 'cliente__identificacion')
-    readonly_fields = ('fecha', 'fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por', 'iva')
-    inlines = [DetalleNotaCreditoInline]
-    
+    def reparacion_numero(self, obj):
+        """Muestra el número de la reparación asociada."""
+        return obj.reparacion.numero if obj.reparacion else _('Sin reparación')
+    reparacion_numero.short_description = _('Reparación')
+
+    def esta_pagado(self, obj):
+        """Muestra si la venta está pagada."""
+        return obj.esta_pagado
+    esta_pagado.short_description = _('Pagado')
+    esta_pagado.boolean = True
+
+    def esta_vencida(self, obj):
+        """Muestra si la proforma está vencida."""
+        return obj.esta_vencida
+    esta_vencida.short_description = _('Vencida')
+    esta_vencida.boolean = True
+
+    def convertir_a_factura(self, request, queryset):
+        """Convierte proformas seleccionadas a facturas."""
+        try:
+            for proforma in queryset.filter(tipo='proforma', estado='aceptada'):
+                if proforma.esta_vencida:
+                    self.message_user(
+                        request,
+                        _(f"La proforma {proforma.numero} está vencida y no puede ser convertida"),
+                        level=messages.WARNING
+                    )
+                    continue
+                factura = VentaService.convertir_proforma_a_factura(
+                    proforma,
+                    usuario=request.user
+                )
+                logger.info(f"Proforma {proforma.numero} convertida a factura {factura.numero} por {request.user}")
+            self.message_user(request, _("Proformas convertidas con éxito"))
+        except Exception as e:
+            logger.error(f"Error al convertir proforma: {str(e)}")
+            self.message_user(request, _(f"Error: {str(e)}"), level=messages.ERROR)
+    convertir_a_factura.short_description = _('Convertir a factura')
+
+    def marcar_como_pagada(self, request, queryset):
+        """Marca las ventas seleccionadas como pagadas."""
+        try:
+            for venta in queryset.filter(estado__in=['borrador', 'emitida']):
+                venta.estado = 'pagada'
+                venta.fecha_pago = timezone.now()
+                venta.modificado_por = request.user
+                venta.save()
+                logger.info(f"Venta {venta.numero} marcada como pagada por {request.user}")
+            self.message_user(request, _("Ventas marcadas como pagadas con éxito"))
+        except Exception as e:
+            logger.error(f"Error al marcar como pagada: {str(e)}")
+            self.message_user(request, _(f"Error: {str(e)}"), level=messages.ERROR)
+    marcar_como_pagada.short_description = _('Marcar como pagada')
+
+    actions = ['convertir_a_factura', 'marcar_como_pagada']
+
+@admin.register(DetalleVenta)
+class DetalleVentaAdmin(admin.ModelAdmin):
+    """Admin para detalles de venta."""
+    list_display = ('venta', 'producto', 'cantidad', 'precio_unitario', 'descuento', 'subtotal', 'iva', 'total')
+    list_filter = ('venta__tipo', 'venta__estado')
+    search_fields = ('venta__numero', 'producto__nombre')
+    readonly_fields = (
+        'subtotal', 'iva', 'total', 'fecha_creacion', 'fecha_modificacion',
+        'creado_por', 'modificado_por'
+    )
     fieldsets = (
-        (None, {'fields': ('numero', 'venta', 'cliente', 'estado')}),
-        (_('Detalles'), {'fields': ('motivo', 'subtotal', 'tipo_iva', 'iva', 'total')}),
+        (None, {'fields': ('venta', 'producto', 'cantidad', 'precio_unitario', 'descuento', 'tipo_iva')}),
+        (_('Totales'), {'fields': ('subtotal', 'iva', 'total')}),
+        (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
+    )
+
+@admin.register(Pago)
+class PagoAdmin(admin.ModelAdmin):
+    """Admin para pagos."""
+    list_display = ('venta', 'fecha', 'metodo', 'monto', 'estado', 'referencia')
+    list_filter = ('metodo', 'estado', 'fecha')
+    search_fields = ('venta__numero', 'referencia', 'notas')
+    readonly_fields = (
+        'fecha', 'fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por'
+    )
+    formfield_overrides = {
+        models.DateTimeField: {'widget': AdminSplitDateTime},
+    }
+    fieldsets = (
+        (None, {'fields': ('venta', 'metodo', 'monto', 'referencia', 'estado')}),
+        (_('Detalles de pago'), {
+            'fields': ('numero_tarjeta', 'titular_tarjeta', 'banco', 'numero_cuenta', 'numero_cheque', 'banco_cheque'),
+            'classes': ('collapse',),
+        }),
+        (_('Notas'), {'fields': ('notas',)}),
         (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )
 
 @admin.register(Envio)
 class EnvioAdmin(admin.ModelAdmin):
+    """Admin para envíos."""
     list_display = ('venta', 'transportista', 'numero_seguimiento', 'estado', 'fecha_envio')
     list_filter = ('estado', 'fecha_envio')
-    search_fields = ('venta__numero', 'numero_seguimiento', 'transportista')
+    search_fields = ('venta__numero', 'transportista', 'numero_seguimiento')
     readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
-    
+    date_hierarchy = 'fecha_envio'
     fieldsets = (
         (None, {'fields': ('venta', 'transportista', 'numero_seguimiento', 'estado')}),
         (_('Fechas'), {'fields': ('fecha_envio', 'fecha_entrega')}),
-        (_('Información adicional'), {'fields': ('notas',)}),
+        (_('Notas'), {'fields': ('notas',)}),
+        (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
+    )
+
+    def marcar_como_entregado(self, request, queryset):
+        """Marca los envíos seleccionados como entregados."""
+        try:
+            for envio in queryset.filter(estado__in=['pendiente', 'en_transito']):
+                envio.estado = 'entregado'
+                envio.fecha_entrega = timezone.now()
+                envio.modificado_por = request.user
+                envio.save()
+                logger.info(f"Envío {envio.numero_seguimiento} marcado como entregado por {request.user}")
+            self.message_user(request, _("Envíos marcados como entregados con éxito"))
+        except Exception as e:
+            logger.error(f"Error al marcar como entregado: {str(e)}")
+            self.message_user(request, _(f"Error: {str(e)}"), level=messages.ERROR)
+    marcar_como_entregado.short_description = _('Marcar como entregado')
+
+    actions = ['marcar_como_entregado']
+
+@admin.register(NotaCredito)
+class NotaCreditoAdmin(admin.ModelAdmin):
+    """Admin para notas de crédito."""
+    list_display = ('numero', 'fecha', 'venta', 'cliente', 'estado', 'total')
+    list_filter = ('estado', 'fecha', 'cliente')
+    search_fields = (
+        'numero', 'venta__numero', 'cliente__nombres', 'cliente__apellidos', 'cliente__email'
+    )
+    readonly_fields = (
+        'fecha', 'subtotal', 'total', 'iva', 'fecha_creacion', 'fecha_modificacion',
+        'creado_por', 'modificado_por'
+    )
+    inlines = [DetalleNotaCreditoInline]
+    date_hierarchy = 'fecha'
+    formfield_overrides = {
+        models.DateTimeField: {'widget': AdminSplitDateTime},
+    }
+    fieldsets = (
+        (None, {'fields': ('numero', 'fecha', 'venta', 'cliente', 'estado')}),
+        (_('Detalles'), {'fields': ('motivo', 'subtotal', 'tipo_iva', 'iva', 'total')}),
+        (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
+    )
+
+    def emitir_nota_credito(self, request, queryset):
+        """Emite las notas de crédito seleccionadas."""
+        try:
+            for nota in queryset.filter(estado='borrador'):
+                nota.estado = 'emitida'
+                nota.modificado_por = request.user
+                nota.save()
+                logger.info(f"Nota de crédito {nota.numero} emitida por {request.user}")
+            self.message_user(request, _("Notas de crédito emitidas con éxito"))
+        except Exception as e:
+            logger.error(f"Error al emitir nota de crédito: {str(e)}")
+            self.message_user(request, _(f"Error: {str(e)}"), level=messages.ERROR)
+    emitir_nota_credito.short_description = _('Emitir nota de crédito')
+
+    actions = ['emitir_nota_credito']
+
+@admin.register(DetalleNotaCredito)
+class DetalleNotaCreditoAdmin(admin.ModelAdmin):
+    """Admin para detalles de nota de crédito."""
+    list_display = ('nota_credito', 'producto', 'cantidad', 'precio_unitario', 'subtotal', 'iva', 'total')
+    list_filter = ('nota_credito__estado', 'nota_credito__cliente')
+    search_fields = ('nota_credito__numero', 'producto__nombre')
+    readonly_fields = (
+        'subtotal', 'iva', 'total', 'fecha_creacion', 'fecha_modificacion',
+        'creado_por', 'modificado_por'
+    )
+    fieldsets = (
+        (None, {'fields': ('nota_credito', 'producto', 'cantidad', 'precio_unitario', 'tipo_iva')}),
+        (_('Totales'), {'fields': ('subtotal', 'iva', 'total')}),
         (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )

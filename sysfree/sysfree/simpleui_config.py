@@ -83,7 +83,11 @@ SIMPLEUI_CONFIG = {
             'icon': 'fas fa-shopping-cart',
             'models': [
                 {'name': 'Ventas', 'icon': 'fas fa-receipt', 'url': 'ventas/venta/'},
+                # {'name': 'Detalles de Venta', 'icon': 'fas fa-list', 'url': 'ventas/detalleventa/'},
                 {'name': 'Pagos', 'icon': 'fas fa-credit-card', 'url': 'ventas/pago/'},
+                {'name': 'Notas de Crédito', 'icon': 'fas fa-undo', 'url': 'ventas/notacredito/'},
+                # {'name': 'Detalles de Nota de Crédito', 'icon': 'fas fa-list-alt', 'url': 'ventas/detallenotacredito/'},
+                {'name': 'Envíos', 'icon': 'fas fa-truck', 'url': 'ventas/envio/'},
             ],
         },
         {
@@ -247,5 +251,7 @@ SIMPLEUI_ICON = {
     'ventas.Venta': 'fas fa-receipt',
     'ventas.DetalleVenta': 'fas fa-list',
     'ventas.Pago': 'fas fa-credit-card',
-    'ventas.DetalleProforma': 'fas fa-list-alt',
+    'ventas.NotaCredito': 'fas fa-undo',
+    'ventas.DetalleNotaCredito': 'fas fa-list-alt',
+    'ventas.Envio': 'fas fa-truck',
 }
