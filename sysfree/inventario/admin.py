@@ -72,7 +72,7 @@ class ProductoAdmin(admin.ModelAdmin):
                       'fecha_ultima_compra', 'fecha_ultimo_movimiento')
     fieldsets = (
         (None, {'fields': ('codigo', 'nombre', 'descripcion', 'categoria', 'imagen')}),
-        (_('Precios'), {'fields': ('precio_compra', 'precio_venta', 'tipo_iva', 'iva')}),
+        (_('Precios'), {'fields': ('precio_compra', 'precio_venta', 'tipo_iva')}),
         (_('Inventario'), {'fields': ('tipo', 'es_inventariable', 'stock', 'stock_minimo')}),
         (_('Proveedores'), {'fields': ('proveedores',)}),
         (_('Estado'), {'fields': ('estado', 'activo')}),

@@ -51,7 +51,6 @@ class Producto(ModeloBase):
         blank=True,
         related_name='productos'
     )
-    iva = models.DecimalField(_('IVA (%)'), max_digits=5, decimal_places=2, default=12.00)
     es_inventariable = models.BooleanField(_('es inventariable'), default=True)
     
     mostrar_en_tienda = models.BooleanField(_('mostrar en tienda'), default=True)
