@@ -69,7 +69,6 @@ class VentaService:
         )
         
         subtotal = 0
-        impuestos = 0
         descuento = 0
         
         for item in items:
@@ -81,7 +80,7 @@ class VentaService:
             subtotal_item = cantidad * precio_unitario - item_descuento
             
             # Usar el servicio IVA para calcular el IVA
-            tipo_iva = producto.tipo_iva or IVAService.get_default()
+            tipo_iva = item.get('tipo_iva') or producto.tipo_iva or IVAService.get_default()
             iva_item, total_item = IVAService.calcular_iva(subtotal_item, tipo_iva)
             
             DetalleVenta.objects.create(
@@ -90,6 +89,7 @@ class VentaService:
                 cantidad=cantidad,
                 precio_unitario=precio_unitario,
                 descuento=item_descuento,
+                tipo_iva=tipo_iva,
                 iva=iva_item,
                 subtotal=subtotal_item,
                 total=total_item,
@@ -98,13 +98,11 @@ class VentaService:
             )
             
             subtotal += subtotal_item
-            impuestos += iva_item
             descuento += item_descuento
         
         venta.subtotal = subtotal
-        venta.iva = impuestos
         venta.descuento = descuento
-        venta.total = subtotal + impuestos
+        venta.total = sum(detalle.total for detalle in venta.detalles.all())
         venta.save()
         
         logger.info(f"{tipo.capitalize()} {venta.numero} creada para cliente {cliente}")
@@ -129,7 +127,8 @@ class VentaService:
                 'producto_id': detalle.producto.id,
                 'cantidad': detalle.cantidad,
                 'precio_unitario': detalle.precio_unitario,
-                'descuento': detalle.descuento
+                'descuento': detalle.descuento,
+                'tipo_iva': detalle.tipo_iva
             })
         
         factura = cls.crear_venta(

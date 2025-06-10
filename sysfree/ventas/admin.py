@@ -1,14 +1,13 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 from .models import Venta, DetalleVenta, Pago, NotaCredito, DetalleNotaCredito, Envio
-
+from core.services import IVAService
 
 class DetalleVentaInline(admin.TabularInline):
     model = DetalleVenta
     extra = 0
-    fields = ('producto', 'cantidad', 'precio_unitario', 'descuento', 'iva', 'subtotal', 'total')
-    readonly_fields = ('subtotal', 'total')
-
+    fields = ('producto', 'cantidad', 'precio_unitario', 'descuento', 'tipo_iva', 'subtotal', 'iva', 'total')
+    readonly_fields = ('subtotal', 'iva', 'total')
 
 class PagoInline(admin.TabularInline):
     model = Pago
@@ -16,27 +15,25 @@ class PagoInline(admin.TabularInline):
     fields = ('metodo', 'monto', 'referencia', 'estado')
     readonly_fields = ('fecha',)
 
-
 class DetalleNotaCreditoInline(admin.TabularInline):
     model = DetalleNotaCredito
     extra = 0
-    fields = ('producto', 'cantidad', 'precio_unitario', 'iva', 'subtotal', 'total')
-    readonly_fields = ('subtotal', 'total')
-
+    fields = ('producto', 'cantidad', 'precio_unitario', 'tipo_iva', 'subtotal', 'iva', 'total')
+    readonly_fields = ('subtotal', 'iva', 'total')
 
 @admin.register(Venta)
 class VentaAdmin(admin.ModelAdmin):
     list_display = ('numero', 'fecha', 'cliente', 'tipo', 'estado', 'total', 'esta_pagado')
     list_filter = ('estado', 'tipo', 'fecha')
     search_fields = ('numero', 'cliente__nombres', 'cliente__apellidos', 'cliente__nombre_comercial', 'cliente__identificacion')
-    readonly_fields = ('fecha', 'fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
+    readonly_fields = ('fecha', 'fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por', 'iva')
     inlines = [DetalleVentaInline, PagoInline]
     
     def get_fieldsets(self, request, obj=None):
         common_fields = [
             (None, {'fields': ('numero', 'cliente', 'tipo', 'estado')}),
             (_('Direcciones'), {'fields': ('direccion_facturacion', 'direccion_envio')}),
-            (_('Totales'), {'fields': ('subtotal', 'iva', 'descuento', 'total')}),
+            (_('Totales'), {'fields': ('subtotal', 'iva', 'descuento', 'total', 'tipo_iva')}),
             (_('Información adicional'), {'fields': ('notas',)}),
             (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
         ]
@@ -59,7 +56,6 @@ class VentaAdmin(admin.ModelAdmin):
             return ('numero', 'fecha', 'cliente', 'estado', 'total', 'esta_vencida')
         return self.list_display
 
-
 @admin.register(Pago)
 class PagoAdmin(admin.ModelAdmin):
     list_display = ('venta', 'fecha', 'metodo', 'monto', 'estado')
@@ -81,21 +77,19 @@ class PagoAdmin(admin.ModelAdmin):
         (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )
 
-
 @admin.register(NotaCredito)
 class NotaCreditoAdmin(admin.ModelAdmin):
     list_display = ('numero', 'fecha', 'venta', 'cliente', 'estado', 'total')
     list_filter = ('estado', 'fecha')
     search_fields = ('numero', 'venta__numero', 'cliente__nombres', 'cliente__apellidos', 'cliente__identificacion')
-    readonly_fields = ('fecha', 'fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
+    readonly_fields = ('fecha', 'fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por', 'iva')
     inlines = [DetalleNotaCreditoInline]
     
     fieldsets = (
         (None, {'fields': ('numero', 'venta', 'cliente', 'estado')}),
-        (_('Detalles'), {'fields': ('motivo', 'subtotal', 'iva', 'total')}),
+        (_('Detalles'), {'fields': ('motivo', 'subtotal', 'tipo_iva', 'iva', 'total')}),
         (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )
-
 
 @admin.register(Envio)
 class EnvioAdmin(admin.ModelAdmin):

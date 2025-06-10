@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 from core.models import ModeloBase
+from core.services import IVAService
 from clientes.models import Cliente
 from inventario.models import Producto
 from .venta import Venta
@@ -32,7 +33,14 @@ class NotaCredito(ModeloBase):
     )
     motivo = models.TextField(_('motivo'))
     subtotal = models.DecimalField(_('subtotal'), max_digits=10, decimal_places=2, default=0)
-    iva = models.DecimalField(_('IVA'), max_digits=10, decimal_places=2, default=0)
+    tipo_iva = models.ForeignKey(
+        'core.TipoIVA',
+        verbose_name=_('tipo de IVA'),
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='notas_credito'
+    )
     total = models.DecimalField(_('total'), max_digits=10, decimal_places=2, default=0)
     estado = models.CharField(_('estado'), max_length=10, choices=ESTADO_CHOICES, default='borrador')
     
@@ -49,22 +57,24 @@ class NotaCredito(ModeloBase):
         super().clean()
         if self.subtotal < 0:
             raise ValidationError(_('El subtotal no puede ser negativo.'))
-        if self.iva < 0:
-            raise ValidationError(_('El IVA no puede ser negativo.'))
         if self.total < 0:
             raise ValidationError(_('El total no puede ser negativo.'))
     
     def save(self, *args, **kwargs):
-        """Sincroniza subtotal, IVA y total con los detalles."""
+        """Sincroniza subtotal y total con los detalles."""
         # Guardar primero para obtener un pk
         super().save(*args, **kwargs)
         # Solo sincronizar si la instancia ya tiene un pk y hay detalles
         if self.pk and self.detalles.exists():
             self.subtotal = sum(detalle.subtotal for detalle in self.detalles.all())
-            self.iva = sum(detalle.iva for detalle in self.detalles.all())
             self.total = sum(detalle.total for detalle in self.detalles.all())
             # Guardar nuevamente para actualizar los valores calculados
             super().save(*args, **kwargs)
+    
+    @property
+    def iva(self):
+        """Calcula el IVA total de la nota de crédito basado en los detalles."""
+        return sum(detalle.iva for detalle in self.detalles.all()) if self.detalles.exists() else 0
 
 
 class DetalleNotaCredito(ModeloBase):
@@ -84,8 +94,16 @@ class DetalleNotaCredito(ModeloBase):
     )
     cantidad = models.DecimalField(_('cantidad'), max_digits=10, decimal_places=2)
     precio_unitario = models.DecimalField(_('precio unitario'), max_digits=10, decimal_places=2)
-    iva = models.DecimalField(_('IVA'), max_digits=10, decimal_places=2, default=0)
+    tipo_iva = models.ForeignKey(
+        'core.TipoIVA',
+        verbose_name=_('tipo de IVA'),
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='detalles_nota_credito'
+    )
     subtotal = models.DecimalField(_('subtotal'), max_digits=10, decimal_places=2)
+    iva = models.DecimalField(_('IVA'), max_digits=10, decimal_places=2, default=0)
     total = models.DecimalField(_('total'), max_digits=10, decimal_places=2)
     
     class Meta:
@@ -103,14 +121,27 @@ class DetalleNotaCredito(ModeloBase):
             raise ValidationError(_('La cantidad debe ser positiva.'))
         if self.precio_unitario < 0:
             raise ValidationError(_('El precio unitario no puede ser negativo.'))
-        if self.iva < 0:
-            raise ValidationError(_('El IVA no puede ser negativo.'))
     
     def save(self, *args, **kwargs):
-        """Calcula subtotal y total, y actualiza el stock."""
+        """Calcula subtotal, IVA, total y actualiza el stock."""
+        # Calcular subtotal
         self.subtotal = self.cantidad * self.precio_unitario
-        self.total = self.subtotal + self.iva
+        
+        # Obtener tipo_iva del producto, de la nota de crédito, o el predeterminado
+        if not self.tipo_iva:
+            self.tipo_iva = (
+                getattr(self.producto, 'tipo_iva', None) or
+                getattr(self.nota_credito, 'tipo_iva', None) or
+                IVAService.get_default()
+            )
+        
+        # Calcular IVA y total usando IVAService
+        self.iva, self.total = IVAService.calcular_iva(self.subtotal, self.tipo_iva)
+        
+        # Guardar el detalle
         super().save(*args, **kwargs)
+        
+        # Actualizar stock si aplica
         if self.nota_credito.estado == 'emitida' and self.producto.es_inventariable:
             self.producto.stock += self.cantidad
             self.producto.save()

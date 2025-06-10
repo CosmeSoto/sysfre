@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from core.models import ModeloBase
 from clientes.models import Cliente, DireccionCliente
 from inventario.models import Producto
-
+from core.services import IVAService
 
 class Venta(ModeloBase):
     """Modelo para ventas, incluyendo facturas y proformas."""
@@ -56,7 +56,14 @@ class Venta(ModeloBase):
     tipo = models.CharField(_('tipo'), max_length=10, choices=TIPO_CHOICES, default='factura')
     estado = models.CharField(_('estado'), max_length=10, choices=ESTADO_CHOICES, default='borrador')
     subtotal = models.DecimalField(_('subtotal'), max_digits=10, decimal_places=2, default=0)
-    iva = models.DecimalField(_('IVA'), max_digits=10, decimal_places=2, default=0)
+    tipo_iva = models.ForeignKey(
+        'core.TipoIVA',
+        verbose_name=_('tipo de IVA'),
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='ventas'
+    )
     descuento = models.DecimalField(_('descuento'), max_digits=10, decimal_places=2, default=0)
     total = models.DecimalField(_('total'), max_digits=10, decimal_places=2, default=0)
     validez = models.PositiveIntegerField(_('validez (días)'), default=15)
@@ -104,8 +111,6 @@ class Venta(ModeloBase):
         super().clean()
         if self.subtotal < 0:
             raise ValidationError(_('El subtotal no puede ser negativo.'))
-        if self.iva < 0:
-            raise ValidationError(_('El IVA no puede ser negativo.'))
         if self.descuento < 0:
             raise ValidationError(_('El descuento no puede ser negativo.'))
         if self.total < 0:
@@ -116,16 +121,20 @@ class Venta(ModeloBase):
             raise ValidationError(_('Las proformas no pueden estar en estado emitida, pagada o anulada.'))
     
     def save(self, *args, **kwargs):
-        """Sincroniza subtotal, IVA, descuento y total con los detalles."""
+        """Sincroniza subtotal, descuento y total con los detalles."""
         # Guardar primero para obtener un pk
         super().save(*args, **kwargs)
         # Solo sincronizar si la instancia ya tiene un pk
         if self.pk and self.detalles.exists():
             self.subtotal = sum(detalle.subtotal for detalle in self.detalles.all())
-            self.iva = sum(detalle.iva for detalle in self.detalles.all())
             self.descuento = sum(detalle.descuento for detalle in self.detalles.all())
             self.total = sum(detalle.total for detalle in self.detalles.all())
             super().save(*args, **kwargs)
+    
+    @property
+    def iva(self):
+        """Calcula el IVA total de la venta basado en los detalles."""
+        return sum(detalle.iva for detalle in self.detalles.all()) if self.detalles.exists() else 0
     
     @property
     def esta_pagado(self):

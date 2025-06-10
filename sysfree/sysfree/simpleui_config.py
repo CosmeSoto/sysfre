@@ -84,7 +84,6 @@ SIMPLEUI_CONFIG = {
             'models': [
                 {'name': 'Ventas', 'icon': 'fas fa-receipt', 'url': 'ventas/venta/'},
                 {'name': 'Pagos', 'icon': 'fas fa-credit-card', 'url': 'ventas/pago/'},
-                {'name': 'Proformas', 'icon': 'fas fa-file-invoice', 'url': 'ventas/proforma/'},
             ],
         },
         {
@@ -248,6 +247,5 @@ SIMPLEUI_ICON = {
     'ventas.Venta': 'fas fa-receipt',
     'ventas.DetalleVenta': 'fas fa-list',
     'ventas.Pago': 'fas fa-credit-card',
-    'ventas.Proforma': 'fas fa-file-invoice',
     'ventas.DetalleProforma': 'fas fa-list-alt',
 }
