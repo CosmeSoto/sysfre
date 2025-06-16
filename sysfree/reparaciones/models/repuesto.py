@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from core.models import ModeloBase
 from inventario.models import Producto
 from .reparacion import Reparacion
+from core.services import IVAService
 
 
 class RepuestoReparacion(ModeloBase):
@@ -24,6 +25,7 @@ class RepuestoReparacion(ModeloBase):
     cantidad = models.DecimalField(_('cantidad'), max_digits=10, decimal_places=2)
     precio_unitario = models.DecimalField(_('precio unitario'), max_digits=10, decimal_places=2)
     subtotal = models.DecimalField(_('subtotal'), max_digits=10, decimal_places=2)
+    impuesto_unitario = models.DecimalField(_('impuesto unitario'), max_digits=10, decimal_places=2, default=0)
     
     class Meta:
         verbose_name = _('repuesto de reparación')
@@ -43,6 +45,13 @@ class RepuestoReparacion(ModeloBase):
             raise ValidationError(_('La cantidad solicitada excede el stock disponible.'))
     
     def save(self, *args, **kwargs):
-        """Sobrescribe el método save para calcular el subtotal."""
+        """Sobrescribe el método save para calcular el subtotal y el impuesto unitario."""
         self.subtotal = self.cantidad * self.precio_unitario
+
+        # Calcular el impuesto unitario usando el tipo_iva del producto
+        tipo_iva = getattr(self.producto, 'tipo_iva', None)
+        tipo_iva = tipo_iva or IVAService.get_default()
+        monto_iva, _ = IVAService.calcular_iva(self.precio_unitario, tipo_iva)
+        self.impuesto_unitario = monto_iva
+
         super().save(*args, **kwargs)

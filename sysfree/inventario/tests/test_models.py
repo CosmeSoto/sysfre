@@ -5,6 +5,7 @@ from django.db.utils import IntegrityError
 from datetime import date, timedelta
 from decimal import Decimal
 
+from core.models import TipoIVA
 from inventario.models.categoria import Categoria
 from inventario.models.producto import Producto
 from inventario.models.proveedor import Proveedor
@@ -15,6 +16,8 @@ from inventario.models.lote import Lote
 from inventario.models.orden_compra import OrdenCompra, ItemOrdenCompra
 from inventario.models.contacto_proveedor import ContactoProveedor
 from inventario.models.movimiento import MovimientoInventario
+from inventario.models.valor_atributo import ValorAtributo
+from inventario.models.atributo import Atributo  # Importar Atributo
 
 
 class BaseModelTest(TestCase):
@@ -441,17 +444,22 @@ class VariacionModelTest(BaseModelTest):
             precio_venta=Decimal('20.00'),
             stock=Decimal('0.00')
         )
+        self.atributo = Atributo.objects.create(nombre="Color y Talla")
+        self.valor_atributo = ValorAtributo.objects.create(
+            atributo=self.atributo,
+            valor="Color: Azul, Talla: M"
+        )
 
     def test_variacion_creacion(self):
         variacion = Variacion.objects.create(
             producto=self.producto,
-            atributo="Color: Azul, Talla: M",
+            valor_atributo=self.valor_atributo,
             codigo="CAM001-AZUL-M",
             stock=Decimal('5.00'),
             precio_venta=Decimal('22.00')
         )
         self.assertEqual(variacion.producto, self.producto)
-        self.assertEqual(variacion.atributo, "Color: Azul, Talla: M")
+        self.assertEqual(variacion.valor_atributo, self.valor_atributo)
         self.assertEqual(variacion.codigo, "CAM001-AZUL-M")
         self.assertEqual(variacion.stock, Decimal('5.00'))
         self.assertEqual(variacion.precio_venta, Decimal('22.00'))
@@ -460,23 +468,27 @@ class VariacionModelTest(BaseModelTest):
     def test_variacion_str(self):
         variacion = Variacion.objects.create(
             producto=self.producto,
-            atributo="Color: Azul, Talla: M",
+            valor_atributo=self.valor_atributo,
             codigo="CAM001-AZUL-M",
             precio_venta=Decimal('22.00')
         )
-        self.assertEqual(str(variacion), f"{self.producto} - Color: Azul, Talla: M")
+        self.assertEqual(str(variacion), f"{self.producto} - {self.valor_atributo}")
 
     def test_variacion_codigo_unico(self):
         Variacion.objects.create(
             producto=self.producto,
-            atributo="Color: Azul, Talla: M",
+            valor_atributo=self.valor_atributo,
             codigo="CAM001-AZUL-M",
             precio_venta=Decimal('22.00')
+        )
+        valor_atributo2 = ValorAtributo.objects.create(
+            atributo=self.atributo,
+            valor="Color: Rojo, Talla: L"
         )
         with self.assertRaises(IntegrityError):
             Variacion.objects.create(
                 producto=self.producto,
-                atributo="Color: Rojo, Talla: L",
+                valor_atributo=valor_atributo2,
                 codigo="CAM001-AZUL-M",
                 precio_venta=Decimal('23.00')
             )
@@ -485,7 +497,7 @@ class VariacionModelTest(BaseModelTest):
         with self.assertRaisesMessage(ValidationError, 'El stock no puede ser negativo.'):
             variacion = Variacion(
                 producto=self.producto,
-                atributo="Color: Azul, Talla: M",
+                valor_atributo=self.valor_atributo,
                 codigo="CAM001-AZUL-M",
                 stock=Decimal('-5.00'),
                 precio_venta=Decimal('22.00')
@@ -495,7 +507,7 @@ class VariacionModelTest(BaseModelTest):
         with self.assertRaisesMessage(ValidationError, 'El precio de venta no puede ser negativo.'):
             variacion = Variacion(
                 producto=self.producto,
-                atributo="Color: Azul, Talla: M",
+                valor_atributo=self.valor_atributo,
                 codigo="CAM001-AZUL-M",
                 stock=Decimal('5.00'),
                 precio_venta=Decimal('-22.00')
@@ -505,14 +517,18 @@ class VariacionModelTest(BaseModelTest):
     def test_variacion_sincroniza_stock(self):
         variacion1 = Variacion.objects.create(
             producto=self.producto,
-            atributo="Color: Azul, Talla: M",
+            valor_atributo=self.valor_atributo,
             codigo="CAM001-AZUL-M",
             stock=Decimal('5.00'),
             precio_venta=Decimal('22.00')
         )
+        valor_atributo2 = ValorAtributo.objects.create(
+            atributo=self.atributo,
+            valor="Color: Rojo, Talla: L"
+        )
         variacion2 = Variacion.objects.create(
             producto=self.producto,
-            atributo="Color: Rojo, Talla: L",
+            valor_atributo=valor_atributo2,
             codigo="CAM001-ROJO-L",
             stock=Decimal('3.00'),
             precio_venta=Decimal('23.00')
@@ -523,7 +539,7 @@ class VariacionModelTest(BaseModelTest):
     def test_variacion_imagen_nullable(self):
         variacion = Variacion.objects.create(
             producto=self.producto,
-            atributo="Color: Azul, Talla: M",
+            valor_atributo=self.valor_atributo,
             codigo="CAM001-AZUL-M",
             precio_venta=Decimal('22.00'),
             imagen=None
@@ -532,23 +548,21 @@ class VariacionModelTest(BaseModelTest):
 
     def test_variacion_atributo_max_length(self):
         self.assert_max_length(
-            model_class=Variacion,
-            field_name="atributo",
+            model_class=ValorAtributo,
+            field_name="valor",
             max_length=100,
             valid_value="A" * 100,
             invalid_value="A" * 101,
             base_data={
-                "producto": self.producto,
-                "atributo": "Test",
-                "codigo": "TEST001",
-                "precio_venta": Decimal('20.00')
+                "atributo": self.atributo,
+                "valor": "Test"
             }
         )
 
     def test_variacion_cascade_deletion(self):
         variacion = Variacion.objects.create(
             producto=self.producto,
-            atributo="Color: Azul, Talla: M",
+            valor_atributo=self.valor_atributo,
             codigo="CAM001-AZUL-M",
             precio_venta=Decimal('22.00')
         )
@@ -883,12 +897,24 @@ class ProductoModelTest(BaseModelTest):
             nombre="Tech Supplier",
             ruc="1234567890001"
         )
+        self.tipo_iva = TipoIVA.objects.create(
+            nombre="IVA 12%",
+            codigo="IVA12",
+            porcentaje=Decimal('12.00'),
+            es_default=True
+        )
+        self.atributo = Atributo.objects.create(nombre="Color")
+        self.valor_atributo = ValorAtributo.objects.create(
+            atributo=self.atributo,
+            valor="Azul"
+        )
         self.producto = Producto.objects.create(
             codigo="TV001",
             nombre="Smart TV 55\"",
             categoria=self.categoria,
             precio_venta=Decimal('600.00'),
-            stock=Decimal('0.00')
+            stock=Decimal('0.00'),
+            tipo_iva=self.tipo_iva
         )
 
     def test_producto_creacion(self):
@@ -901,7 +927,7 @@ class ProductoModelTest(BaseModelTest):
             stock=Decimal('10.00'),
             stock_minimo=Decimal('2.00'),
             categoria=self.categoria,
-            iva=Decimal('12.00'),
+            tipo_iva=self.tipo_iva, 
             es_inventariable=True,
             mostrar_en_tienda=True,
             destacado=True
@@ -915,7 +941,7 @@ class ProductoModelTest(BaseModelTest):
         self.assertEqual(producto.stock, Decimal('10.00'))
         self.assertEqual(producto.stock_minimo, Decimal('2.00'))
         self.assertEqual(producto.categoria, self.categoria)
-        self.assertEqual(producto.iva, Decimal('12.00'))
+        self.assertEqual(producto.tipo_iva.porcentaje, Decimal('12.00'))
         self.assertTrue(producto.es_inventariable)
         self.assertTrue(producto.mostrar_en_tienda)
         self.assertTrue(producto.destacado)
@@ -1016,7 +1042,6 @@ class ProductoModelTest(BaseModelTest):
         for field, error_msg in [
             ('precio_compra', 'El precio de compra no puede ser negativo.'),
             ('precio_venta', 'El precio de venta no puede ser negativo.'),
-            ('iva', 'El IVA no puede ser negativo.'),
             ('stock', 'El stock no puede ser negativo.'),
             ('stock_minimo', 'El stock mínimo no puede ser negativo.')
         ]:
@@ -1119,7 +1144,7 @@ class ProductoModelTest(BaseModelTest):
         self.producto.save()
         variacion = Variacion.objects.create(
             producto=self.producto,
-            atributo="Color: Azul",
+            valor_atributo=self.valor_atributo,
             codigo="TV001-AZUL",
             stock=Decimal('5.00'),
             precio_venta=Decimal('600.00')

@@ -5,6 +5,7 @@ from django.contrib.contenttypes.models import ContentType
 from core.models import ModeloBase
 from inventario.models import Producto
 from .pedido import Pedido
+from core.services import IVAService
 
 
 class DetallePedido(ModeloBase):
@@ -66,7 +67,18 @@ class DetallePedido(ModeloBase):
         return f"{item_name} x {self.cantidad} en {self.pedido}"
     
     def save(self, *args, **kwargs):
-        """Sobrescribe el método save para calcular los totales."""
+        """Sobrescribe el método save para calcular los totales y el impuesto unitario."""
+        # Calcular tipo_iva
+        tipo_iva = None
+        if self.es_servicio and hasattr(self.item, 'tipo_iva'):
+            tipo_iva = self.item.tipo_iva
+        elif self.producto and hasattr(self.producto, 'tipo_iva'):
+            tipo_iva = self.producto.tipo_iva
+
+        tipo_iva = tipo_iva or IVAService.get_default()
+        monto_iva, _ = IVAService.calcular_iva(self.precio_unitario, tipo_iva)
+        self.impuesto_unitario = monto_iva
+
         self.subtotal = self.precio_unitario * self.cantidad
         self.impuestos = self.impuesto_unitario * self.cantidad
         self.total = self.subtotal + self.impuestos

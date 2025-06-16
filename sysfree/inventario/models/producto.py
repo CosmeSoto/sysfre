@@ -86,25 +86,19 @@ class Producto(ModeloBase):
             raise ValidationError(_('El precio de compra no puede ser negativo.'))
         if self.precio_venta is not None and self.precio_venta < 0:
             raise ValidationError(_('El precio de venta no puede ser negativo.'))
-        if self.iva is not None and self.iva < 0:
-            raise ValidationError(_('El IVA no puede ser negativo.'))
         if self.stock is not None and self.stock < 0:
             raise ValidationError(_('El stock no puede ser negativo.'))
         if self.stock_minimo is not None and self.stock_minimo < 0:
             raise ValidationError(_('El stock mínimo no puede ser negativo.'))
         super().clean()
-    
+
     def save(self, *args, **kwargs):
         if not self.url_slug and self.nombre:
             from django.utils.text import slugify
             self.url_slug = slugify(self.nombre)
-            
+
         # Si no tiene tipo_iva asignado, usar el predeterminado
         if not self.tipo_iva:
             self.tipo_iva = IVAService.get_default()
-            
-        # Sincronizar el campo iva con el porcentaje del tipo_iva
-        if self.tipo_iva:
-            self.iva = self.tipo_iva.porcentaje
-            
+
         super().save(*args, **kwargs)

@@ -10,13 +10,16 @@ class CategoriaSerializer(serializers.ModelSerializer):
 
 class ProductoSerializer(serializers.ModelSerializer):
     categoria_nombre = serializers.ReadOnlyField(source='categoria.nombre')
+    porcentaje_iva = serializers.DecimalField(source='tipo_iva.porcentaje', max_digits=5, decimal_places=2, read_only=True)
     
     class Meta:
         model = Producto
         fields = [
             'id', 'codigo', 'nombre', 'descripcion', 'precio_compra', 'precio_venta',
             'stock', 'stock_minimo', 'categoria', 'categoria_nombre', 'imagen',
-            'estado', 'tipo', 'iva', 'es_inventariable', 'activo'
+            'estado', 'tipo', 'es_inventariable', 'activo',
+            'tipo_iva',
+            'porcentaje_iva',
         ]
 
 

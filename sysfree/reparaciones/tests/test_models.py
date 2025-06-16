@@ -9,6 +9,7 @@ from clientes.models import Cliente
 from core.models import Usuario
 from inventario.models import Producto, Categoria
 from ventas.models import Venta, DetalleVenta
+from core.services import IVAService
 
 class ReparacionModelTest(TestCase):
     """
@@ -564,6 +565,21 @@ class RepuestoReparacionModelTest(TestCase):
         self.assertEqual(repuesto.producto, self.producto)
         self.assertIn(repuesto, self.reparacion.repuestos.all())
         self.assertIn(repuesto, self.producto.reparaciones.all())
+
+    def test_repuesto_calculo_impuesto_unitario(self):
+        """
+        Verifica el cálculo automático del impuesto unitario según el tipo_iva del producto.
+        """
+        # Asegúrate de que el producto tenga tipo_iva asignado
+        tipo_iva = self.producto.tipo_iva
+        repuesto = RepuestoReparacion.objects.create(
+            reparacion=self.reparacion,
+            producto=self.producto,
+            cantidad=2.00,
+            precio_unitario=50.00
+        )
+        monto_iva, _ = IVAService.calcular_iva(50.00, tipo_iva)
+        self.assertEqual(float(repuesto.impuesto_unitario), float(monto_iva))
 
 
 class GarantiaReparacionModelTest(TestCase):

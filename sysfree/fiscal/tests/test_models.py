@@ -3,86 +3,13 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.db.utils import IntegrityError
 from datetime import date, timedelta
-from django.db import models
 
 from fiscal.models import (
-    AsientoContable, Comprobante, CuentaContable, Impuesto,
+    AsientoContable, Comprobante, CuentaContable,
     LineaAsiento, PeriodoFiscal
 )
-from core.models import ModeloBase
+from core.models import TipoIVA
 from inventario.models import Proveedor
-
-class ModeloBaseTest(TestCase):
-    """
-    Pruebas para el modelo abstracto ModeloBase.
-    """
-    def test_modelo_base_atributos(self):
-        """
-        Verifica que los atributos de ModeloBase se establezcan correctamente.
-        """
-        impuesto = Impuesto.objects.create(
-            nombre="Test",
-            codigo="TEST",
-            porcentaje=0.00
-        )
-        self.assertIsNotNone(impuesto.fecha_creacion)
-        self.assertIsNotNone(impuesto.fecha_modificacion)
-        self.assertIsNone(impuesto.creado_por)
-        self.assertIsNone(impuesto.modificado_por)
-        self.assertTrue(impuesto.activo)
-
-
-class ImpuestoModelTest(TestCase):
-    """
-    Pruebas para el modelo Impuesto.
-    """
-    def test_impuesto_creacion(self):
-        """
-        Verifica la creación de un impuesto.
-        """
-        impuesto = Impuesto.objects.create(
-            nombre="IVA",
-            codigo="IVA12",
-            porcentaje=12.00,
-            descripcion="Impuesto al Valor Agregado 12%"
-        )
-        self.assertEqual(impuesto.nombre, "IVA")
-        self.assertEqual(impuesto.codigo, "IVA12")
-        self.assertEqual(float(impuesto.porcentaje), 12.00)
-        self.assertEqual(impuesto.descripcion, "Impuesto al Valor Agregado 12%")
-        self.assertTrue(isinstance(impuesto, Impuesto))
-
-    def test_impuesto_str(self):
-        """
-        Verifica el método __str__ de Impuesto.
-        """
-        impuesto = Impuesto.objects.create(
-            nombre="IVA",
-            codigo="IVA12",
-            porcentaje=12.00
-        )
-        self.assertEqual(str(impuesto), "IVA (12.00%)")
-
-    def test_impuesto_codigo_unico(self):
-        """
-        Verifica que el campo codigo sea único.
-        """
-        Impuesto.objects.create(nombre="IVA", codigo="IVA12", porcentaje=12.00)
-        with self.assertRaises(IntegrityError):
-            Impuesto.objects.create(nombre="VAT", codigo="IVA12", porcentaje=10.00)
-
-    def test_impuesto_porcentaje_negativo(self):
-        """
-        Verifica que no se permita un porcentaje negativo.
-        """
-        with self.assertRaises(ValidationError):
-            impuesto = Impuesto(
-                nombre="IVA Negativo",
-                codigo="IVANEG",
-                porcentaje=-5.00
-            )
-            impuesto.full_clean()
-
 
 class PeriodoFiscalModelTest(TestCase):
     """
@@ -495,6 +422,12 @@ class ComprobanteModelTest(TestCase):
             fecha=date(2023, 11, 1),
             periodo_fiscal=self.periodo,
             concepto="Asiento de comprobante"
+        )
+        self.tipo_iva = TipoIVA.objects.create(
+            nombre="IVA 12%",
+            codigo="IVA12",
+            porcentaje=12.00,
+            es_default=True
         )
 
     def test_comprobante_creacion(self):
