@@ -30,9 +30,8 @@ urlpatterns = [
     path('reportes/', include('reportes.urls', namespace='reportes')),
     path('tienda/', include('ecommerce.urls', namespace='ecommerce')),
     
-    # Monitoreo
-    path('metrics/', metrics_view, name='metrics'),
-    path('metrics/', login_required(metrics_view), name='metrics'), # Agrega el decorador de login_required (Verifica que settings.DEBUG esté en False en producción y que un servidor como Nginx sirva los archivos estáticos/media.)
+    # Monitoreo - Protegido por login_required
+    path('metrics/', login_required(metrics_view), name='prometheus-metrics'), # Renombrado para evitar colisión si 'metrics' se usa en otro lado y solo una definición.
 ]
 
 # Servir archivos estáticos y media solo en desarrollo

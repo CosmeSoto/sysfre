@@ -101,9 +101,6 @@ class SecurityMiddleware(MiddlewareMixin):
         # Evita que los navegadores interpreten archivos con tipos MIME incorrectos
         response['X-Content-Type-Options'] = 'nosniff'
         
-        # Previene la incrustación en iframes para mitigar clickjacking
-        response['X-Frame-Options'] = 'DENY'
-        
         # Cabecera obsoleta, pero mantenida por compatibilidad con navegadores antiguos
         response['X-XSS-Protection'] = '1; mode=block'
         
