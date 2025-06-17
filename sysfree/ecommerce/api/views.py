@@ -109,14 +109,7 @@ class CarritoViewSet(viewsets.ModelViewSet):
     def actual(self, request):
         # Obtener o crear carrito para el usuario actual
         try:
-            if request.user.is_authenticated and hasattr(request.user, 'cliente'):
-                carrito = CarritoService.obtener_o_crear_carrito(cliente=request.user.cliente)
-            else:
-                sesion_id = request.session.session_key
-                if not sesion_id:
-                    request.session.save()
-                    sesion_id = request.session.session_key
-                carrito = CarritoService.obtener_o_crear_carrito(sesion_id=sesion_id)
+            carrito = CarritoService.obtener_o_crear_carrito(request)
             
             serializer = self.get_serializer(carrito)
             return Response(serializer.data)
@@ -128,6 +121,7 @@ class CarritoViewSet(viewsets.ModelViewSet):
         carrito = self.get_object()
         producto_id = request.data.get('producto_id')
         cantidad = int(request.data.get('cantidad', 1))
+        es_servicio = request.data.get('es_servicio', False)
         
         if not producto_id:
             return Response(
@@ -138,8 +132,9 @@ class CarritoViewSet(viewsets.ModelViewSet):
         try:
             item = CarritoService.agregar_item(
                 carrito=carrito,
-                producto_id=producto_id,
-                cantidad=cantidad
+                item_id=producto_id,
+                cantidad=cantidad,
+                es_servicio=es_servicio
             )
             
             serializer = ItemCarritoSerializer(item)
@@ -210,8 +205,6 @@ class PedidoViewSet(viewsets.ModelViewSet):
         direccion_facturacion_id = request.data.get('direccion_facturacion_id')
         direccion_envio_id = request.data.get('direccion_envio_id')
         notas = request.data.get('notas', '')
-        costo_envio = float(request.data.get('costo_envio', 0))
-        descuento = float(request.data.get('descuento', 0))
         
         if not all([carrito_id, direccion_facturacion_id]):
             return Response(
@@ -220,14 +213,19 @@ class PedidoViewSet(viewsets.ModelViewSet):
             )
         
         try:
+            from clientes.models import DireccionCliente
+            from ecommerce.models import Carrito
+            
+            # Obtener objetos a partir de IDs
+            carrito = Carrito.objects.get(id=carrito_id)
+            direccion_facturacion = DireccionCliente.objects.get(id=direccion_facturacion_id)
+            direccion_envio = DireccionCliente.objects.get(id=direccion_envio_id) if direccion_envio_id else direccion_facturacion
+            
             pedido = PedidoService.crear_pedido_desde_carrito(
-                carrito_id=carrito_id,
-                direccion_facturacion_id=direccion_facturacion_id,
-                direccion_envio_id=direccion_envio_id,
-                notas=notas,
-                costo_envio=costo_envio,
-                descuento=descuento,
-                usuario=request.user
+                carrito=carrito,
+                direccion_facturacion=direccion_facturacion,
+                direccion_envio=direccion_envio,
+                notas=notas
             )
             
             serializer = self.get_serializer(pedido)
@@ -242,8 +240,7 @@ class PedidoViewSet(viewsets.ModelViewSet):
         monto = request.data.get('monto')
         referencia = request.data.get('referencia', '')
         pasarela_id = request.data.get('pasarela_id', '')
-        pasarela_respuesta = request.data.get('pasarela_respuesta', {})
-        estado = request.data.get('estado', 'pendiente')
+        estado = request.data.get('estado', 'completado')
         
         if not all([metodo, monto]):
             return Response(
@@ -252,16 +249,23 @@ class PedidoViewSet(viewsets.ModelViewSet):
             )
         
         try:
-            pago = PedidoService.registrar_pago(
+            # Crear el pago directamente
+            from ecommerce.models import PagoOnline
+            
+            pago = PagoOnline.objects.create(
                 pedido=pedido,
                 metodo=metodo,
                 monto=float(monto),
                 referencia=referencia,
                 pasarela_id=pasarela_id,
-                pasarela_respuesta=pasarela_respuesta,
                 estado=estado,
-                usuario=request.user
+                creado_por=request.user,
+                modificado_por=request.user
             )
+            
+            # Si el pago está completado, actualizar el estado del pedido
+            if estado == 'completado':
+                PedidoService.actualizar_estado_pedido(pedido, 'pagado')
             
             serializer = PagoOnlineSerializer(pago)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -280,10 +284,9 @@ class PedidoViewSet(viewsets.ModelViewSet):
             )
         
         try:
-            pedido = PedidoService.cambiar_estado_pedido(
+            pedido = PedidoService.actualizar_estado_pedido(
                 pedido=pedido,
-                nuevo_estado=nuevo_estado,
-                usuario=request.user
+                nuevo_estado=nuevo_estado
             )
             
             serializer = self.get_serializer(pedido)

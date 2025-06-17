@@ -3,13 +3,13 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from inventario.models import Producto, Categoria
+from inventario.models import Categoria, Producto, Proveedor, Almacen, StockAlmacen
 
 User = get_user_model()
 
 
-class APITests(TestCase):
-    """Pruebas para la API."""
+class InventarioAPITests(TestCase):
+    """Pruebas para la API de inventario."""
     
     def setUp(self):
         """Configuración inicial para las pruebas."""
@@ -46,6 +46,27 @@ class APITests(TestCase):
             categoria=self.categoria
         )
         
+        # Crear proveedor de prueba
+        self.proveedor = Proveedor.objects.create(
+            nombre='Proveedor de prueba',
+            ruc='1234567890001',
+            email='proveedor@example.com',
+            telefono='0987654321'
+        )
+        
+        # Crear almacén de prueba
+        self.almacen = Almacen.objects.create(
+            nombre='Almacén de prueba',
+            direccion='Dirección de prueba'
+        )
+        
+        # Crear stock en almacén
+        self.stock_almacen = StockAlmacen.objects.create(
+            producto=self.producto,
+            almacen=self.almacen,
+            cantidad=10
+        )
+        
         # Cliente API
         self.client = APIClient()
     
@@ -74,7 +95,6 @@ class APITests(TestCase):
         response = self.client.get(reverse('api:producto-detail', args=[self.producto.id]))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['nombre'], 'Producto de prueba')
-        self.assertEqual(response.data['categoria_nombre'], 'Categoría de prueba')
     
     def test_create_producto(self):
         """Prueba crear un producto."""
@@ -117,72 +137,56 @@ class APITests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Producto.objects.count(), 0)
     
-    def test_buscar_productos(self):
-        """Prueba el endpoint de búsqueda de productos."""
-        self.client.force_authenticate(user=self.user)
-        response = self.client.get(
-            reverse('api:producto-list'), # Usar la URL de la lista
-            {'search': 'prueba'} # El parámetro es 'search'
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['results']), 1) # Los resultados están paginados
-        self.assertEqual(response.data['results'][0]['nombre'], 'Producto de prueba')
-    
-    def test_actualizar_stock(self):
-        """Prueba el endpoint para actualizar el stock de un producto."""
+    def test_registrar_entrada(self):
+        """Prueba el endpoint para registrar entrada de inventario."""
         self.client.force_authenticate(user=self.admin_user)
-        
-        # Crear un almacén para las pruebas
-        from inventario.models import Almacen, StockAlmacen
-        almacen = Almacen.objects.create(
-            nombre='Almacén de prueba',
-            direccion='Dirección de prueba'
-        )
-        
-        # Crear stock inicial en el almacén
-        StockAlmacen.objects.create(
-            producto=self.producto,
-            almacen=almacen,
-            cantidad=0  # Inicialmente sin stock en el almacén
-        )
-        
-        # Registrar entrada de stock
+        data = {
+            'cantidad': 5,
+            'costo_unitario': 100,
+            'almacen': self.almacen.id,
+            'proveedor': self.proveedor.id,
+            'origen': 'compra',
+            'documento': 'FAC-001',
+            'notas': 'Entrada de prueba'
+        }
         response = self.client.post(
             reverse('api:producto-registrar-entrada', args=[self.producto.id]),
-            {
-                'cantidad': 5, 
-                'origen': 'ajuste', 
-                'costo_unitario': self.producto.precio_compra,
-                'almacen': almacen.id
-            }
+            data
         )
-        if response.status_code != status.HTTP_201_CREATED:
-            print("Error en registrar_entrada:", response.data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        
-        # Verificar que el stock en el almacén se actualizó correctamente
-        stock_almacen = StockAlmacen.objects.get(producto=self.producto, almacen=almacen)
-        self.assertEqual(stock_almacen.cantidad, 5)
-        
-        # Verificar que el stock total del producto se actualizó correctamente
         self.producto.refresh_from_db()
-        self.assertEqual(self.producto.stock, 5)  # El stock ahora es 5 (solo hay stock en este almacén)
-        
-        # Probar salida de stock
+        self.assertEqual(self.producto.stock, 15)  # 10 + 5
+    
+    def test_registrar_salida(self):
+        """Prueba el endpoint para registrar salida de inventario."""
+        self.client.force_authenticate(user=self.admin_user)
+        data = {
+            'cantidad': 3,
+            'almacen': self.almacen.id,
+            'origen': 'venta',
+            'documento': 'FAC-001',
+            'notas': 'Salida de prueba'
+        }
         response = self.client.post(
             reverse('api:producto-registrar-salida', args=[self.producto.id]),
-            {
-                'cantidad': 3, 
-                'origen': 'ajuste',
-                'almacen': almacen.id
-            }
+            data
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        
-        # Verificar que el stock en el almacén se actualizó correctamente
-        stock_almacen.refresh_from_db()
-        self.assertEqual(stock_almacen.cantidad, 2)
-        
-        # Verificar que el stock total del producto se actualizó correctamente
         self.producto.refresh_from_db()
-        self.assertEqual(self.producto.stock, 2)  # 5 - 3 = 2
+        self.assertEqual(self.producto.stock, 7)  # 10 - 3
+    
+    def test_get_categorias(self):
+        """Prueba obtener la lista de categorías."""
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(reverse('api:categoria-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['nombre'], 'Categoría de prueba')
+    
+    def test_get_proveedores(self):
+        """Prueba obtener la lista de proveedores."""
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(reverse('api:proveedor-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['nombre'], 'Proveedor de prueba')

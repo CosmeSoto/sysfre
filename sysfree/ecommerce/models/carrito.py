@@ -20,6 +20,11 @@ class Carrito(ModeloBase):
     fecha_actualizacion = models.DateTimeField(_('fecha de actualización'), auto_now=True)
     convertido_a_pedido = models.BooleanField(_('convertido a pedido'), default=False)
     
+    # Campos para almacenar los totales calculados
+    _subtotal = models.DecimalField(_('subtotal'), max_digits=10, decimal_places=2, default=0, db_column='subtotal')
+    _total_impuestos = models.DecimalField(_('total impuestos'), max_digits=10, decimal_places=2, default=0, db_column='total_impuestos')
+    _total = models.DecimalField(_('total'), max_digits=10, decimal_places=2, default=0, db_column='total')
+    
     class Meta:
         verbose_name = _('carrito')
         verbose_name_plural = _('carritos')
@@ -38,14 +43,36 @@ class Carrito(ModeloBase):
     @property
     def subtotal(self):
         """Retorna el subtotal del carrito."""
-        return sum(item.subtotal for item in self.items.all())
+        return self._subtotal
+    
+    @subtotal.setter
+    def subtotal(self, value):
+        """Establece el subtotal del carrito."""
+        self._subtotal = value
     
     @property
     def total_impuestos(self):
         """Retorna el total de impuestos del carrito."""
-        return sum(item.impuestos for item in self.items.all())
+        return self._total_impuestos
+    
+    @total_impuestos.setter
+    def total_impuestos(self, value):
+        """Establece el total de impuestos del carrito."""
+        self._total_impuestos = value
     
     @property
     def total(self):
         """Retorna el total del carrito."""
-        return self.subtotal + self.total_impuestos
+        return self._total
+    
+    @total.setter
+    def total(self, value):
+        """Establece el total del carrito."""
+        self._total = value
+    
+    def actualizar_totales(self):
+        """Actualiza los totales del carrito basados en sus items."""
+        self._subtotal = sum(item.subtotal for item in self.items.all())
+        self._total_impuestos = sum(item.impuestos for item in self.items.all())
+        self._total = self._subtotal + self._total_impuestos
+        self.save(update_fields=['_subtotal', '_total_impuestos', '_total'])

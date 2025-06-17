@@ -119,6 +119,9 @@ class CarritoService:
                     item.cantidad += cantidad
                     item.save()
                 
+                # Actualizar totales del carrito
+                carrito.actualizar_totales()
+                
                 logger.info(f"Servicio {servicio.nombre} agregado al carrito {carrito.id}")
                 
                 # Invalidar caché
@@ -158,6 +161,9 @@ class CarritoService:
                     # Si ya existe, actualizar la cantidad
                     item.cantidad += cantidad
                     item.save()
+                
+                # Actualizar totales del carrito
+                carrito.actualizar_totales()
                 
                 logger.info(f"Producto {producto.nombre} agregado al carrito {carrito.id}")
                 
@@ -201,6 +207,9 @@ class CarritoService:
             item.cantidad = cantidad
             item.save()
             
+            # Actualizar totales del carrito
+            carrito.actualizar_totales()
+            
             # Invalidar caché
             CarritoService.invalidar_cache_carrito(carrito.id)
             if carrito.cliente:
@@ -231,6 +240,9 @@ class CarritoService:
             item = ItemCarrito.objects.get(id=item_id, carrito=carrito)
             item.delete()
             
+            # Actualizar totales del carrito
+            carrito.actualizar_totales()
+            
             # Invalidar caché
             CarritoService.invalidar_cache_carrito(carrito.id)
             if carrito.cliente:
@@ -258,6 +270,12 @@ class CarritoService:
         """
         try:
             carrito.items.all().delete()
+            
+            # Actualizar totales del carrito
+            carrito._subtotal = 0
+            carrito._total_impuestos = 0
+            carrito._total = 0
+            carrito.save(update_fields=['_subtotal', '_total_impuestos', '_total'])
             
             # Invalidar caché
             CarritoService.invalidar_cache_carrito(carrito.id)

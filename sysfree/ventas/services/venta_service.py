@@ -143,6 +143,64 @@ class VentaService:
     @classmethod
     @log_function_call
     @transaction.atomic
+    def cambiar_estado_venta(cls, venta, nuevo_estado, usuario=None):
+        """Cambia el estado de una venta."""
+        estados_validos = ['borrador', 'pendiente', 'pagada', 'enviada', 'entregada', 'cancelada']
+        if nuevo_estado not in estados_validos:
+            raise ValueError(_(f"Estado no válido. Debe ser uno de: {', '.join(estados_validos)}"))
+        
+        venta.estado = nuevo_estado
+        venta.modificado_por = usuario
+        venta.save()
+        
+        # Invalidar caché
+        cls.invalidar_cache_venta(venta.id)
+        
+        logger.info(f"Venta {venta.numero} actualizada a estado {nuevo_estado}")
+        
+        return venta
+    
+    @classmethod
+    @log_function_call
+    @transaction.atomic
+    def registrar_pago(cls, venta, metodo, monto, referencia='', datos_adicionales=None, usuario=None):
+        """Registra un pago para una venta."""
+        from ventas.models import Pago
+        
+        if venta.estado == 'cancelada':
+            raise ValueError(_("No se puede registrar un pago para una venta cancelada"))
+        
+        pago = Pago.objects.create(
+            venta=venta,
+            metodo=metodo,
+            monto=monto,
+            referencia=referencia,
+            estado='completado',
+            creado_por=usuario,
+            modificado_por=usuario
+        )
+        
+        # Actualizar estado de la venta si el pago cubre el total
+        from django.db.models import Sum
+        total_pagado = Pago.objects.filter(venta=venta, estado='completado').aggregate(
+            total=Sum('monto')
+        )['total'] or 0
+        
+        if total_pagado >= venta.total:
+            venta.estado = 'pagada'
+            venta.modificado_por = usuario
+            venta.save()
+        
+        # Invalidar caché
+        cls.invalidar_cache_venta(venta.id)
+        
+        logger.info(f"Pago registrado para venta {venta.numero}: {metodo} - {monto}")
+        
+        return pago
+    
+    @classmethod
+    @log_function_call
+    @transaction.atomic
     def convertir_proforma_a_factura(cls, proforma, usuario=None):
         """Convierte una proforma (Venta con tipo='proforma') en factura."""
         if proforma.tipo != 'proforma':

@@ -60,8 +60,19 @@ def registrar_movimientos_inventario(sender, instance, **kwargs):
     # Solo procesar si el pedido está pagado y no se han registrado movimientos
     if instance.estado == 'pagado' and not hasattr(instance, '_movimientos_registrados'):
         for detalle in instance.detalles.all():
-            if detalle.producto.es_inventariable:
+            # Verificar si es un producto (no un servicio) y es inventariable
+            if not detalle.es_servicio and detalle.producto and detalle.producto.es_inventariable:
                 try:
+                    # Buscar un almacén activo para registrar la salida
+                    from inventario.models import Almacen
+                    almacen = Almacen.objects.filter(activo=True).first()
+                    
+                    if not almacen:
+                        import logging
+                        logger = logging.getLogger('sysfree')
+                        logger.error(f"No se encontró un almacén activo para registrar la salida del pedido {instance.numero}")
+                        continue
+                    
                     InventarioService.registrar_salida(
                         producto=detalle.producto,
                         cantidad=detalle.cantidad,
@@ -70,11 +81,24 @@ def registrar_movimientos_inventario(sender, instance, **kwargs):
                         notas=f'Pedido online #{instance.numero}',
                         usuario=instance.modificado_por,
                         referencia_id=instance.id,
-                        referencia_tipo='pedido'
+                        referencia_tipo='pedido',
+                        almacen=almacen
                     )
-                except ValueError:
+                    
+                    import logging
+                    logger = logging.getLogger('sysfree')
+                    logger.info(f"Salida de inventario registrada para producto {detalle.producto.codigo} - {detalle.producto.nombre}, cantidad {detalle.cantidad}, pedido {instance.numero}")
+                    
+                except ValueError as e:
                     # Manejar el caso de stock insuficiente
-                    pass
+                    import logging
+                    logger = logging.getLogger('sysfree')
+                    logger.error(f"Error al registrar salida de inventario para pedido {instance.numero}: {str(e)}")
+                    
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger('sysfree')
+                    logger.error(f"Error inesperado al registrar salida de inventario para pedido {instance.numero}: {str(e)}")
         
         # Marcar que ya se registraron los movimientos
         instance._movimientos_registrados = True

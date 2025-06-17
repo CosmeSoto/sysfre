@@ -28,8 +28,7 @@ class ProveedorSerializer(serializers.ModelSerializer):
         model = Proveedor
         fields = [
             'id', 'nombre', 'ruc', 'direccion', 'telefono', 'email', 'sitio_web',
-            'contacto_nombre', 'contacto_telefono', 'contacto_email', 'dias_credito',
-            'limite_credito', 'activo'
+            'notas', 'dias_credito', 'limite_credito', 'estado', 'activo'
         ]
 
 

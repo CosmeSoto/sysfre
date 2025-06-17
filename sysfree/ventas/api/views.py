@@ -57,12 +57,19 @@ class VentaViewSet(viewsets.ModelViewSet):
             )
         
         try:
+            from clientes.models import Cliente, DireccionCliente
+            
+            # Obtener objetos a partir de IDs
+            cliente = Cliente.objects.get(id=cliente_id)
+            direccion_facturacion = DireccionCliente.objects.get(id=direccion_facturacion_id) if direccion_facturacion_id else None
+            direccion_envio = DireccionCliente.objects.get(id=direccion_envio_id) if direccion_envio_id else None
+            
             venta = VentaService.crear_venta(
-                cliente_id=cliente_id,
+                cliente=cliente,
                 tipo=tipo,
                 items=items,
-                direccion_facturacion_id=direccion_facturacion_id,
-                direccion_envio_id=direccion_envio_id,
+                direccion_facturacion=direccion_facturacion,
+                direccion_envio=direccion_envio,
                 notas=notas,
                 usuario=request.user
             )
