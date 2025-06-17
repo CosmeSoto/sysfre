@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'django_filters',
     'drf_yasg',
     'haystack', # Added django-haystack
+    'django_celery_beat', # Added django-celery-beat
 
     # Local apps
     'sysfree.apps.SysfreeConfig',  # Configuración principal
@@ -199,16 +200,69 @@ HAYSTACK_CONNECTIONS = {
 }
 HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor' # Optional: for real-time updates
 
-# Cache settings
+# =========================
+# Seguridad
+# =========================
+SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=not DEBUG, cast=bool)
+SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=3600 if not DEBUG else 0, cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = config('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=True, cast=bool)
+SECURE_HSTS_PRELOAD = config('SECURE_HSTS_PRELOAD', default=True, cast=bool)
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=not DEBUG, cast=bool)
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=not DEBUG, cast=bool)
+
+# =========================
+# Monitoreo / Prometheus
+# =========================
+PROMETHEUS_ALLOWED_IPS = config(
+    'PROMETHEUS_ALLOWED_IPS',
+    default='127.0.0.1,::1',
+    cast=lambda v: [s.strip() for s in v.split(',')]
+)
+ENABLE_SYSTEM_MONITORING = config('ENABLE_SYSTEM_MONITORING', default=True, cast=bool)
+
+# =========================
+# Cache (Redis recomendado en producción)
+# =========================
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': config('CACHE_LOCATION', default='redis://127.0.0.1:6379/1'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+            'SOCKET_TIMEOUT': 5,
+            'SOCKET_CONNECT_TIMEOUT': 5,
+            'CONNECTION_POOL_KWARGS': {
+                'max_connections': 100,
+                'retry_on_timeout': True,
+            },
+        }
     }
 }
 
-ENABLE_SYSTEM_MONITORING = True  # Deshabilitar en entornos de prueba si es necesario
+# =========================
+# Celery
+# =========================
+CELERY_BROKER_URL = config('CACHE_LOCATION', default='redis://:admin@127.0.0.1:6379/1')
+CELERY_RESULT_BACKEND = config('CACHE_LOCATION', default='redis://:admin@127.0.0.1:6379/1')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE  # Usa la misma zona horaria que TIME_ZONE
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
-# Logging configuration
+# =========================
+# Celery Beat
+# =========================
+CELERY_BEAT_SCHEDULE = {
+    'update-system-metrics-every-60-seconds': {
+        'task': 'core.tasks.update_system_metrics_task',  # Ajusta a 'sysfree.tasks' si usas sysfree/tasks.py
+        'schedule': 60.0,  # Cada 60 segundos
+    },
+}
+# =========================
+# Logging
+# =========================
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -282,12 +336,17 @@ LOGGING = {
         },
         'django.db.backends': {
             'handlers': ['sysfree_file'],
-            'level': 'INFO',
+            'level': 'WARNING',  # Cambia a WARNING para menos ruido en producción
             'propagate': False,
         },
         'sysfree': {
             'handlers': ['sysfree_file', 'error_file', 'console'],
             'level': 'INFO',
+            'propagate': False,
+        },
+        'django_redis': {
+            'handlers': ['sysfree_file', 'error_file', 'console'],
+            'level': 'DEBUG',
             'propagate': False,
         },
         'inventario.signals': {

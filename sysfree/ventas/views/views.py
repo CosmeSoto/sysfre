@@ -8,7 +8,9 @@ from inventario.models import Producto
 from django.forms import modelformset_factory
 from django.db import transaction
 from django.http import HttpResponse
+from django.views.decorators.cache import cache_page
 
+@cache_page(60 * 5)
 @login_required
 def venta_list(request):
     """Lista todas las ventas, incluyendo proformas."""

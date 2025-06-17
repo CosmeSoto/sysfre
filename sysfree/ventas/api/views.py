@@ -5,6 +5,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from ventas.models import Venta, DetalleVenta, Pago
 from ventas.services.venta_service import VentaService
 from .serializers import VentaSerializer, DetalleVentaSerializer, PagoSerializer
+from django.core.cache import cache
 
 
 class VentaViewSet(viewsets.ModelViewSet):
@@ -19,6 +20,8 @@ class VentaViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'])
     def crear_venta(self, request):
+        cache_key = 'ventas_list'
+        cache.delete(cache_key)  # Limpiar caché al crear una nueva venta
         cliente_id = request.data.get('cliente_id')
         tipo = request.data.get('tipo', 'factura')
         items = request.data.get('items', [])
