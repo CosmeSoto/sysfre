@@ -2,6 +2,7 @@ from django.db.models import Q
 from django.utils.crypto import get_random_string
 from django.core.mail import send_mail
 from django.conf import settings
+from django.core.cache import cache
 from ..models import Cliente, ContactoCliente, DireccionCliente
 from core.models import Usuario
 
@@ -20,7 +21,16 @@ class ClienteService:
         Returns:
             QuerySet: Clientes que coinciden con la búsqueda
         """
-        return Cliente.objects.filter(
+        # Crear una clave única para el caché
+        cache_key = f'cliente_service_buscar_{termino}'
+        
+        # Intentar obtener del caché
+        cached_result = cache.get(cache_key)
+        if cached_result is not None:
+            return cached_result
+        
+        # Si no está en caché, realizar la consulta
+        clientes = Cliente.objects.filter(
             Q(identificacion__icontains=termino) |
             Q(nombres__icontains=termino) |
             Q(apellidos__icontains=termino) |
@@ -29,6 +39,11 @@ class ClienteService:
             Q(telefono__icontains=termino) |
             Q(celular__icontains=termino)
         ).filter(activo=True)
+        
+        # Guardar en caché por 5 minutos
+        cache.set(cache_key, clientes, 60 * 5)
+        
+        return clientes
     
     @classmethod
     def crear_cliente_con_usuario(cls, datos_cliente, crear_usuario=False, enviar_email=False):
@@ -116,8 +131,16 @@ class ClienteService:
         Returns:
             DireccionCliente: Dirección de facturación principal o None
         """
+        # Crear una clave única para el caché
+        cache_key = f'cliente_direccion_facturacion_{cliente.id}'
+        
+        # Intentar obtener del caché
+        cached_result = cache.get(cache_key)
+        if cached_result is not None:
+            return cached_result
+        
         try:
-            return DireccionCliente.objects.get(
+            direccion = DireccionCliente.objects.get(
                 cliente=cliente,
                 tipo='facturacion',
                 es_principal=True,
@@ -126,13 +149,18 @@ class ClienteService:
         except DireccionCliente.DoesNotExist:
             # Si no hay dirección principal, intentar obtener cualquier dirección de facturación
             try:
-                return DireccionCliente.objects.filter(
+                direccion = DireccionCliente.objects.filter(
                     cliente=cliente,
                     tipo='facturacion',
                     activo=True
                 ).first()
             except DireccionCliente.DoesNotExist:
-                return None
+                direccion = None
+        
+        # Guardar en caché por 30 minutos
+        cache.set(cache_key, direccion, 60 * 30)
+        
+        return direccion
     
     @classmethod
     def send_welcome_email(cls, cliente, password):

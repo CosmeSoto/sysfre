@@ -1,6 +1,7 @@
 from django.db import transaction
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
+from django.core.cache import cache
 from ..models import Carrito, ItemCarrito
 from inventario.models import Producto
 from reparaciones.models import ServicioReparacion
@@ -11,6 +12,34 @@ logger = logging.getLogger('sysfree')
 
 class CarritoService:
     """Servicio para gestionar el carrito de compras."""
+    
+    @classmethod
+    def invalidar_cache_carrito(cls, carrito_id=None, cliente_id=None):
+        """
+        Invalida el caché relacionado con carritos.
+        
+        Args:
+            carrito_id (int, optional): ID del carrito específico a invalidar
+            cliente_id (int, optional): ID del cliente para invalidar sus carritos
+        """
+        try:
+            # Obtener el cliente Redis
+            from django_redis import get_redis_connection
+            client = get_redis_connection("default")
+            
+            # Invalidar caché específico de carrito
+            if carrito_id:
+                for key in client.keys(f'*carrito*{carrito_id}*'):
+                    client.delete(key)
+            
+            # Invalidar caché de carritos de un cliente
+            if cliente_id:
+                for key in client.keys(f'*carrito*cliente*{cliente_id}*'):
+                    client.delete(key)
+                    
+        except Exception as e:
+            logger.error(f"Error al invalidar caché de carrito: {str(e)}")
+            pass
     
     @staticmethod
     def obtener_o_crear_carrito(request):
@@ -92,6 +121,11 @@ class CarritoService:
                 
                 logger.info(f"Servicio {servicio.nombre} agregado al carrito {carrito.id}")
                 
+                # Invalidar caché
+                CarritoService.invalidar_cache_carrito(carrito.id)
+                if carrito.cliente:
+                    CarritoService.invalidar_cache_carrito(cliente_id=carrito.cliente.id)
+                
             else:
                 # Es un producto
                 producto = Producto.objects.get(id=item_id)
@@ -126,6 +160,11 @@ class CarritoService:
                     item.save()
                 
                 logger.info(f"Producto {producto.nombre} agregado al carrito {carrito.id}")
+                
+                # Invalidar caché
+                CarritoService.invalidar_cache_carrito(carrito.id)
+                if carrito.cliente:
+                    CarritoService.invalidar_cache_carrito(cliente_id=carrito.cliente.id)
             
             return item
             
@@ -162,6 +201,11 @@ class CarritoService:
             item.cantidad = cantidad
             item.save()
             
+            # Invalidar caché
+            CarritoService.invalidar_cache_carrito(carrito.id)
+            if carrito.cliente:
+                CarritoService.invalidar_cache_carrito(cliente_id=carrito.cliente.id)
+            
             logger.info(f"Item {item_id} actualizado en carrito {carrito.id}")
             return item
             
@@ -187,6 +231,11 @@ class CarritoService:
             item = ItemCarrito.objects.get(id=item_id, carrito=carrito)
             item.delete()
             
+            # Invalidar caché
+            CarritoService.invalidar_cache_carrito(carrito.id)
+            if carrito.cliente:
+                CarritoService.invalidar_cache_carrito(cliente_id=carrito.cliente.id)
+            
             logger.info(f"Item {item_id} eliminado del carrito {carrito.id}")
             return True
             
@@ -209,6 +258,11 @@ class CarritoService:
         """
         try:
             carrito.items.all().delete()
+            
+            # Invalidar caché
+            CarritoService.invalidar_cache_carrito(carrito.id)
+            if carrito.cliente:
+                CarritoService.invalidar_cache_carrito(cliente_id=carrito.cliente.id)
             
             logger.info(f"Carrito {carrito.id} vaciado")
             return True

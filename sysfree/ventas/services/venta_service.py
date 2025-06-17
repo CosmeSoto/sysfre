@@ -2,6 +2,7 @@ import logging
 from django.utils import timezone
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
+from django.core.cache import cache
 from ventas.models import Venta, DetalleVenta
 from inventario.models import Producto
 from core.models import ConfiguracionSistema
@@ -12,6 +13,33 @@ logger = logging.getLogger('sysfree')
 
 class VentaService:
     """Servicio para gestionar ventas, incluyendo proformas."""
+    
+    @classmethod
+    def invalidar_cache_venta(cls, venta_id=None):
+        """
+        Invalida el caché relacionado con ventas.
+        
+        Args:
+            venta_id (int, optional): ID de la venta específica a invalidar
+        """
+        # Invalidar caché general de ventas
+        cache.delete('ventas_list')
+        
+        # Si se proporciona un ID de venta, invalidar caché específico
+        if venta_id:
+            try:
+                # Obtener el cliente Redis
+                from django_redis import get_redis_connection
+                client = get_redis_connection("default")
+                
+                # Buscar claves que coincidan con el patrón
+                for key in client.keys(f'*venta*{venta_id}*'):
+                    client.delete(key)
+                    
+            except Exception as e:
+                logger.error(f"Error al invalidar caché de venta: {str(e)}")
+                # Si falla, al menos eliminamos la caché general
+                pass
     
     @classmethod
     def generar_numero(cls, tipo):
@@ -105,6 +133,9 @@ class VentaService:
         venta.total = sum(detalle.total for detalle in venta.detalles.all())
         venta.save()
         
+        # Invalidar caché
+        cls.invalidar_cache_venta()
+        
         logger.info(f"{tipo.capitalize()} {venta.numero} creada para cliente {cliente}")
         
         return venta
@@ -149,6 +180,11 @@ class VentaService:
         
         factura.venta_relacionada = proforma
         factura.save()
+        
+        # Invalidar caché
+        cls.invalidar_cache_venta()
+        cls.invalidar_cache_venta(proforma.id)
+        cls.invalidar_cache_venta(factura.id)
         
         logger.info(f"Proforma {proforma.numero} convertida a factura {factura.numero}")
         

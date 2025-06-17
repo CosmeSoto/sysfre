@@ -2,6 +2,10 @@ from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_cookie
+from django.core.cache import cache
 from inventario.models import Categoria, Producto, Proveedor, MovimientoInventario, Almacen, StockAlmacen
 from inventario.services.inventario_service import InventarioService
 from .serializers import (
@@ -17,6 +21,18 @@ class CategoriaViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ['nombre', 'codigo', 'descripcion']
     filterset_fields = ['activo', 'categoria_padre']
+    
+    @method_decorator(cache_page(60 * 30))  # Cache por 30 minutos
+    @method_decorator(vary_on_cookie)
+    def list(self, request, *args, **kwargs):
+        """Lista de categorías con caché de 30 minutos"""
+        return super().list(request, *args, **kwargs)
+    
+    @method_decorator(cache_page(60 * 30))  # Cache por 30 minutos
+    @method_decorator(vary_on_cookie)
+    def retrieve(self, request, *args, **kwargs):
+        """Detalle de categoría con caché de 30 minutos"""
+        return super().retrieve(request, *args, **kwargs)
 
 
 class ProductoViewSet(viewsets.ModelViewSet):
@@ -26,6 +42,18 @@ class ProductoViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter, DjangoFilterBackend]
     search_fields = ['nombre', 'codigo', 'descripcion']
     filterset_fields = ['categoria', 'estado', 'tipo', 'es_inventariable', 'activo']
+    
+    @method_decorator(cache_page(60 * 15))  # Cache por 15 minutos
+    @method_decorator(vary_on_cookie)
+    def list(self, request, *args, **kwargs):
+        """Lista de productos con caché de 15 minutos"""
+        return super().list(request, *args, **kwargs)
+    
+    @method_decorator(cache_page(60 * 15))  # Cache por 15 minutos
+    @method_decorator(vary_on_cookie)
+    def retrieve(self, request, *args, **kwargs):
+        """Detalle de producto con caché de 15 minutos"""
+        return super().retrieve(request, *args, **kwargs)
     
     @action(detail=True, methods=['post'])
     def registrar_entrada(self, request, pk=None):
@@ -144,6 +172,18 @@ class ProveedorViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [filters.SearchFilter]
     search_fields = ['nombre', 'ruc', 'email', 'contacto_nombre']
+    
+    @method_decorator(cache_page(60 * 30))  # Cache por 30 minutos
+    @method_decorator(vary_on_cookie)
+    def list(self, request, *args, **kwargs):
+        """Lista de proveedores con caché de 30 minutos"""
+        return super().list(request, *args, **kwargs)
+    
+    @method_decorator(cache_page(60 * 30))  # Cache por 30 minutos
+    @method_decorator(vary_on_cookie)
+    def retrieve(self, request, *args, **kwargs):
+        """Detalle de proveedor con caché de 30 minutos"""
+        return super().retrieve(request, *args, **kwargs)
 
 
 class MovimientoInventarioViewSet(viewsets.ReadOnlyModelViewSet):
@@ -154,3 +194,15 @@ class MovimientoInventarioViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields = ['tipo', 'origen', 'producto', 'proveedor']
     ordering_fields = ['fecha', 'producto']
     ordering = ['-fecha']
+    
+    @method_decorator(cache_page(60 * 10))  # Cache por 10 minutos
+    @method_decorator(vary_on_cookie)
+    def list(self, request, *args, **kwargs):
+        """Lista de movimientos con caché de 10 minutos"""
+        return super().list(request, *args, **kwargs)
+    
+    @method_decorator(cache_page(60 * 10))  # Cache por 10 minutos
+    @method_decorator(vary_on_cookie)
+    def retrieve(self, request, *args, **kwargs):
+        """Detalle de movimiento con caché de 10 minutos"""
+        return super().retrieve(request, *args, **kwargs)

@@ -3,6 +3,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.contrib.contenttypes.models import ContentType
 from django.conf import settings
+from django.core.cache import cache
 from ..models import Pedido, DetallePedido
 from reparaciones.models import Reparacion, ServicioReparacion
 from inventario.models import Producto
@@ -14,6 +15,33 @@ logger = logging.getLogger('sysfree')
 
 class PedidoService:
     """Servicio para gestionar pedidos en la tienda online."""
+    
+    @classmethod
+    def invalidar_cache_pedido(cls, pedido_id=None):
+        """
+        Invalida el caché relacionado con pedidos.
+        
+        Args:
+            pedido_id (int, optional): ID del pedido específico a invalidar
+        """
+        # Invalidar caché general de pedidos
+        cache.delete('pedidos_list')
+        
+        # Si se proporciona un ID de pedido, invalidar caché específico
+        if pedido_id:
+            try:
+                # Obtener el cliente Redis
+                from django_redis import get_redis_connection
+                client = get_redis_connection("default")
+                
+                # Buscar claves que coincidan con el patrón
+                for key in client.keys(f'*pedido*{pedido_id}*'):
+                    client.delete(key)
+                    
+            except Exception as e:
+                logger.error(f"Error al invalidar caché de pedido: {str(e)}")
+                # Si falla, al menos eliminamos la caché general
+                pass
     
     @staticmethod
     @transaction.atomic
@@ -83,6 +111,9 @@ class PedidoService:
         carrito.convertido_a_pedido = True
         carrito.save()
         
+        # Invalidar caché
+        PedidoService.invalidar_cache_pedido()
+        
         logger.info(f"Pedido {numero_pedido} creado para cliente {carrito.cliente}")
         return pedido
     
@@ -149,6 +180,9 @@ class PedidoService:
         
         pedido.estado = nuevo_estado
         pedido.save()
+        
+        # Invalidar caché
+        PedidoService.invalidar_cache_pedido(pedido.id)
         
         logger.info(f"Pedido {pedido.numero} actualizado a estado {nuevo_estado}")
         return pedido

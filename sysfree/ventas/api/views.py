@@ -2,10 +2,13 @@ from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_cookie
+from django.core.cache import cache
 from ventas.models import Venta, DetalleVenta, Pago
 from ventas.services.venta_service import VentaService
 from .serializers import VentaSerializer, DetalleVentaSerializer, PagoSerializer
-from django.core.cache import cache
 
 
 class VentaViewSet(viewsets.ModelViewSet):
@@ -17,6 +20,18 @@ class VentaViewSet(viewsets.ModelViewSet):
     filterset_fields = ['estado', 'tipo', 'cliente']
     ordering_fields = ['fecha', 'total']
     ordering = ['-fecha']
+    
+    @method_decorator(cache_page(60 * 10))  # Cache por 10 minutos
+    @method_decorator(vary_on_cookie)
+    def list(self, request, *args, **kwargs):
+        """Lista de ventas con caché de 10 minutos"""
+        return super().list(request, *args, **kwargs)
+    
+    @method_decorator(cache_page(60 * 15))  # Cache por 15 minutos
+    @method_decorator(vary_on_cookie)
+    def retrieve(self, request, *args, **kwargs):
+        """Detalle de venta con caché de 15 minutos"""
+        return super().retrieve(request, *args, **kwargs)
     
     @action(detail=False, methods=['post'])
     def crear_venta(self, request):
@@ -116,6 +131,18 @@ class DetalleVentaViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['venta', 'producto']
+    
+    @method_decorator(cache_page(60 * 15))  # Cache por 15 minutos
+    @method_decorator(vary_on_cookie)
+    def list(self, request, *args, **kwargs):
+        """Lista de detalles de venta con caché de 15 minutos"""
+        return super().list(request, *args, **kwargs)
+    
+    @method_decorator(cache_page(60 * 15))  # Cache por 15 minutos
+    @method_decorator(vary_on_cookie)
+    def retrieve(self, request, *args, **kwargs):
+        """Detalle de detalle de venta con caché de 15 minutos"""
+        return super().retrieve(request, *args, **kwargs)
 
 
 class PagoViewSet(viewsets.ModelViewSet):
@@ -126,3 +153,15 @@ class PagoViewSet(viewsets.ModelViewSet):
     filterset_fields = ['venta', 'metodo', 'estado']
     ordering_fields = ['fecha', 'monto']
     ordering = ['-fecha']
+    
+    @method_decorator(cache_page(60 * 15))  # Cache por 15 minutos
+    @method_decorator(vary_on_cookie)
+    def list(self, request, *args, **kwargs):
+        """Lista de pagos con caché de 15 minutos"""
+        return super().list(request, *args, **kwargs)
+    
+    @method_decorator(cache_page(60 * 15))  # Cache por 15 minutos
+    @method_decorator(vary_on_cookie)
+    def retrieve(self, request, *args, **kwargs):
+        """Detalle de pago con caché de 15 minutos"""
+        return super().retrieve(request, *args, **kwargs)

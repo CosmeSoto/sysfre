@@ -2,6 +2,10 @@ from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_cookie
+from django.core.cache import cache
 from ecommerce.models import (
     CategoriaEcommerce, ProductoEcommerce, ImagenProducto,
     Carrito, ItemCarrito, Pedido, DetallePedido, PagoOnline
@@ -23,6 +27,16 @@ class CategoriaEcommerceViewSet(viewsets.ModelViewSet):
     search_fields = ['nombre', 'slug', 'descripcion']
     filterset_fields = ['mostrar_en_menu', 'categoria_padre', 'activo']
     lookup_field = 'slug'
+    
+    @method_decorator(cache_page(60 * 30))  # Cache por 30 minutos
+    def list(self, request, *args, **kwargs):
+        """Lista de categorías con caché de 30 minutos"""
+        return super().list(request, *args, **kwargs)
+    
+    @method_decorator(cache_page(60 * 30))  # Cache por 30 minutos
+    def retrieve(self, request, *args, **kwargs):
+        """Detalle de categoría con caché de 30 minutos"""
+        return super().retrieve(request, *args, **kwargs)
 
 
 class ProductoEcommerceViewSet(viewsets.ModelViewSet):
@@ -33,6 +47,16 @@ class ProductoEcommerceViewSet(viewsets.ModelViewSet):
     search_fields = ['producto__nombre', 'producto__codigo', 'slug', 'descripcion_corta', 'descripcion_larga']
     filterset_fields = ['destacado', 'nuevo', 'oferta', 'categorias', 'activo']
     lookup_field = 'slug'
+    
+    @method_decorator(cache_page(60 * 15))  # Cache por 15 minutos
+    def list(self, request, *args, **kwargs):
+        """Lista de productos con caché de 15 minutos"""
+        return super().list(request, *args, **kwargs)
+    
+    @method_decorator(cache_page(60 * 15))  # Cache por 15 minutos
+    def retrieve(self, request, *args, **kwargs):
+        """Detalle de producto con caché de 15 minutos"""
+        return super().retrieve(request, *args, **kwargs)
     
     @action(detail=True, methods=['post'])
     def registrar_visita(self, request, slug=None):
@@ -48,6 +72,16 @@ class ImagenProductoViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['producto', 'es_principal', 'activo']
+    
+    @method_decorator(cache_page(60 * 30))  # Cache por 30 minutos
+    def list(self, request, *args, **kwargs):
+        """Lista de imágenes con caché de 30 minutos"""
+        return super().list(request, *args, **kwargs)
+    
+    @method_decorator(cache_page(60 * 30))  # Cache por 30 minutos
+    def retrieve(self, request, *args, **kwargs):
+        """Detalle de imagen con caché de 30 minutos"""
+        return super().retrieve(request, *args, **kwargs)
 
 
 class CarritoViewSet(viewsets.ModelViewSet):
@@ -150,6 +184,18 @@ class PedidoViewSet(viewsets.ModelViewSet):
     filterset_fields = ['estado', 'cliente']
     ordering_fields = ['fecha', 'total']
     ordering = ['-fecha']
+    
+    @method_decorator(cache_page(60 * 10))  # Cache por 10 minutos
+    @method_decorator(vary_on_cookie)
+    def list(self, request, *args, **kwargs):
+        """Lista de pedidos con caché de 10 minutos"""
+        return super().list(request, *args, **kwargs)
+    
+    @method_decorator(cache_page(60 * 15))  # Cache por 15 minutos
+    @method_decorator(vary_on_cookie)
+    def retrieve(self, request, *args, **kwargs):
+        """Detalle de pedido con caché de 15 minutos"""
+        return super().retrieve(request, *args, **kwargs)
     
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -254,3 +300,15 @@ class PagoOnlineViewSet(viewsets.ReadOnlyModelViewSet):
     filterset_fields = ['pedido', 'metodo', 'estado']
     ordering_fields = ['fecha', 'monto']
     ordering = ['-fecha']
+    
+    @method_decorator(cache_page(60 * 15))  # Cache por 15 minutos
+    @method_decorator(vary_on_cookie)
+    def list(self, request, *args, **kwargs):
+        """Lista de pagos con caché de 15 minutos"""
+        return super().list(request, *args, **kwargs)
+    
+    @method_decorator(cache_page(60 * 15))  # Cache por 15 minutos
+    @method_decorator(vary_on_cookie)
+    def retrieve(self, request, *args, **kwargs):
+        """Detalle de pago con caché de 15 minutos"""
+        return super().retrieve(request, *args, **kwargs)
