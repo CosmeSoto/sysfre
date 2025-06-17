@@ -3,18 +3,18 @@ import time
 import psutil
 import os
 
-# Métricas para solicitudes HTTP
+# Contador de solicitudes HTTP
 REQUEST_COUNT = Counter(
     'http_requests_total',
     'Total de solicitudes HTTP',
     ['method', 'endpoint', 'status_code']
 )
 
+# Histograma de latencia de solicitudes HTTP (en segundos)
 REQUEST_LATENCY = Histogram(
     'http_request_duration_seconds',
     'Duración de las solicitudes HTTP',
-    ['method', 'endpoint'],
-    buckets=(0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1.0, 2.5, 5.0, 7.5, 10.0)
+    ['method', 'endpoint']
 )
 
 # Métricas para la base de datos

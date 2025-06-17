@@ -1,5 +1,6 @@
 from django.apps import AppConfig
-
+from django.conf import settings
+import os
 
 class SysfreeConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
@@ -8,19 +9,18 @@ class SysfreeConfig(AppConfig):
 
     def ready(self):
         """
-        Método ejecutado cuando la aplicación está lista.
-        Inicia servicios como el monitoreo del sistema.
+        Método ejecutado al inicializar la aplicación.
+        Inicia el sistema de monitoreo (definido en core.monitoring) solo en el
+        proceso principal, si está habilitado en la configuración.
         """
-        # Importar aquí para evitar problemas de importación circular
         import logging
         logger = logging.getLogger('sysfree')
-        
-        # Solo iniciar el monitoreo en el proceso principal
-        import os
-        if os.environ.get('RUN_MAIN', None) != 'true':
+
+        # Iniciar monitoreo solo en el proceso principal y si está habilitado
+        if os.environ.get('RUN_MAIN') and getattr(settings, 'ENABLE_SYSTEM_MONITORING', True):
             try:
                 from core.monitoring import start_monitoring
                 start_monitoring()
                 logger.info("Sistema de monitoreo iniciado correctamente")
-            except Exception as e:
+            except (ImportError, RuntimeError) as e:
                 logger.error(f"Error al iniciar el sistema de monitoreo: {str(e)}")

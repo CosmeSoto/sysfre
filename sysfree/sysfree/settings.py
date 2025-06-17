@@ -1,11 +1,6 @@
-"""
-Django settings for sysfree project.
-"""
-
 import os
 from pathlib import Path
 from decouple import config
-from .simpleui_config import *
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,7 +15,6 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=lamb
 
 # Application definition
 INSTALLED_APPS = [
-    #'simpleui', # Added simpleui here
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -49,16 +43,21 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
+    'django.middleware.security.SecurityMiddleware', # El de Django, no el tuyo personalizado si lo tienes separado
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware', # El de Django
+
+    # Tus middlewares personalizados
+    'sysfree.middleware.SecurityMiddleware', # Tu SecurityMiddleware personalizado si lo tienes
     'core.middleware.UsuarioActualMiddleware',
     'core.middleware.SessionControlMiddleware',
-    'core.middleware.RequestLoggingMiddleware',
+    # 'core.middleware.RequestLoggingMiddleware', # O 'sysfree.middleware.RequestLoggingMiddleware'
+    'sysfree.middleware.RequestLoggingMiddleware', # Si el que modificamos es el que quieres usar
+    'sysfree.middleware.PrometheusMiddleware',
 ]
 
 ROOT_URLCONF = 'sysfree.urls'
@@ -206,6 +205,8 @@ CACHES = {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
     }
 }
+
+ENABLE_SYSTEM_MONITORING = True  # Deshabilitar en entornos de prueba si es necesario
 
 # Logging configuration
 LOGGING = {
