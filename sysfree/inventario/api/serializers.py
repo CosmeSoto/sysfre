@@ -1,46 +1,88 @@
 from rest_framework import serializers
-from inventario.models import Categoria, Producto, Proveedor, MovimientoInventario
-
+from inventario.models import (
+    Categoria, Producto, Proveedor, MovimientoInventario, Almacen,
+    Lote, StockAlmacen, ContactoProveedor, OrdenCompra, ItemOrdenCompra,
+    Variacion, AlertaStock
+)
 
 class CategoriaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Categoria
-        fields = ['id', 'nombre', 'descripcion', 'codigo', 'imagen', 'categoria_padre', 'orden', 'activo']
-
+        fields = '__all__'
 
 class ProductoSerializer(serializers.ModelSerializer):
     categoria_nombre = serializers.ReadOnlyField(source='categoria.nombre')
-    porcentaje_iva = serializers.DecimalField(source='tipo_iva.porcentaje', max_digits=5, decimal_places=2, read_only=True)
     
     class Meta:
         model = Producto
-        fields = [
-            'id', 'codigo', 'nombre', 'descripcion', 'precio_compra', 'precio_venta',
-            'stock', 'stock_minimo', 'categoria', 'categoria_nombre', 'imagen',
-            'estado', 'tipo', 'es_inventariable', 'activo',
-            'tipo_iva',
-            'porcentaje_iva',
-        ]
-
+        fields = '__all__'
 
 class ProveedorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Proveedor
-        fields = [
-            'id', 'nombre', 'ruc', 'direccion', 'telefono', 'email', 'sitio_web',
-            'notas', 'dias_credito', 'limite_credito', 'estado', 'activo'
-        ]
-
+        fields = '__all__'
 
 class MovimientoInventarioSerializer(serializers.ModelSerializer):
     producto_nombre = serializers.ReadOnlyField(source='producto.nombre')
-    proveedor_nombre = serializers.ReadOnlyField(source='proveedor.nombre')
+    almacen_nombre = serializers.ReadOnlyField(source='almacen.nombre')
     
     class Meta:
         model = MovimientoInventario
-        fields = [
-            'id', 'fecha', 'tipo', 'origen', 'producto', 'producto_nombre',
-            'cantidad', 'stock_anterior', 'stock_nuevo', 'costo_unitario',
-            'proveedor', 'proveedor_nombre', 'documento', 'notas'
-        ]
-        read_only_fields = ['fecha', 'stock_anterior', 'stock_nuevo']
+        fields = '__all__'
+
+class AlmacenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Almacen
+        fields = '__all__'
+
+class LoteSerializer(serializers.ModelSerializer):
+    producto_nombre = serializers.ReadOnlyField(source='producto.nombre')
+    
+    class Meta:
+        model = Lote
+        fields = '__all__'
+
+class StockAlmacenSerializer(serializers.ModelSerializer):
+    producto_nombre = serializers.ReadOnlyField(source='producto.nombre')
+    almacen_nombre = serializers.ReadOnlyField(source='almacen.nombre')
+    
+    class Meta:
+        model = StockAlmacen
+        fields = '__all__'
+
+class ContactoProveedorSerializer(serializers.ModelSerializer):
+    proveedor_nombre = serializers.ReadOnlyField(source='proveedor.nombre')
+    
+    class Meta:
+        model = ContactoProveedor
+        fields = '__all__'
+
+class ItemOrdenCompraSerializer(serializers.ModelSerializer):
+    producto_nombre = serializers.ReadOnlyField(source='producto.nombre')
+    
+    class Meta:
+        model = ItemOrdenCompra
+        fields = '__all__'
+
+class OrdenCompraSerializer(serializers.ModelSerializer):
+    proveedor_nombre = serializers.ReadOnlyField(source='proveedor.nombre')
+    items = ItemOrdenCompraSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = OrdenCompra
+        fields = '__all__'
+
+class VariacionSerializer(serializers.ModelSerializer):
+    producto_nombre = serializers.ReadOnlyField(source='producto.nombre')
+    
+    class Meta:
+        model = Variacion
+        fields = '__all__'
+
+class AlertaStockSerializer(serializers.ModelSerializer):
+    producto_nombre = serializers.ReadOnlyField(source='producto.nombre')
+    producto_codigo = serializers.ReadOnlyField(source='producto.codigo')
+    
+    class Meta:
+        model = AlertaStock
+        fields = '__all__'

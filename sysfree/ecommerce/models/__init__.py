@@ -11,6 +11,7 @@ from .servicio_tienda import ServicioEcommerce
 from .valoracion import Valoracion, ValoracionServicio
 from .lista_deseos import ListaDeseos, ItemListaDeseos
 from .comparacion import Comparacion
+from .reserva_stock import ReservaStock
 
 __all__ = [
     'CategoriaEcommerce',
@@ -28,4 +29,5 @@ __all__ = [
     'ListaDeseos',
     'ItemListaDeseos',
     'Comparacion',
+    'ReservaStock',
 ]

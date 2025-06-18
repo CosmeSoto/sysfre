@@ -8,6 +8,7 @@ from .stock_almacen import StockAlmacen
 from .contacto_proveedor import ContactoProveedor
 from .orden_compra import OrdenCompra, ItemOrdenCompra
 from .variacion import Variacion
+from .alerta_stock import AlertaStock
 
 __all__ = [
     'Categoria',
@@ -21,4 +22,5 @@ __all__ = [
     'OrdenCompra',
     'ItemOrdenCompra',
     'Variacion',
+    'AlertaStock',
 ]

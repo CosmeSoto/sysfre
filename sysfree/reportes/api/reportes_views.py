@@ -215,25 +215,19 @@ class ReporteProductosBajoStockView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def get(self, request):
-        # Obtener productos inventariables
-        productos = Producto.objects.filter(es_inventariable=True)
+        from reportes.services.stock_bajo_report_service import StockBajoReportService
         
-        # Filtrar productos con stock bajo
-        productos_bajo_stock = [
-            p for p in productos
-            if p.stock <= p.stock_minimo
-        ]
+        # Obtener umbral personalizado si se proporciona
+        umbral = request.query_params.get('umbral')
+        if umbral:
+            try:
+                umbral = int(umbral)
+            except ValueError:
+                umbral = None
+        else:
+            umbral = None
         
-        return Response({
-            'productos': [
-                {
-                    'id': p.id,
-                    'codigo': p.codigo,
-                    'nombre': p.nombre,
-                    'stock': p.stock,
-                    'stock_minimo': p.stock_minimo,
-                    'precio_venta': p.precio_venta
-                }
-                for p in productos_bajo_stock
-            ]
-        })
+        # Generar reporte
+        reporte = StockBajoReportService.generar_reporte(umbral_personalizado=umbral)
+        
+        return Response(reporte)

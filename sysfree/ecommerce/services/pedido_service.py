@@ -61,6 +61,14 @@ class PedidoService:
         if not carrito.items.exists():
             raise ValueError(_("El carrito está vacío"))
         
+        # Validar stock
+        from .stock_validation_service import StockValidationService
+        stock_valido, productos_sin_stock = StockValidationService.validar_stock_carrito(carrito)
+        
+        if not stock_valido:
+            productos_str = ", ".join([f"{p['producto'].nombre} (solicitado: {p['cantidad_solicitada']}, disponible: {p['stock_actual']})" for p in productos_sin_stock])
+            raise ValueError(_("No hay suficiente stock para los siguientes productos: {}").format(productos_str))
+        
         # Generar número de pedido único
         numero_pedido = f"PED-{uuid.uuid4().hex[:8].upper()}"
         

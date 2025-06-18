@@ -89,6 +89,11 @@ def registrar_movimientos_inventario(sender, instance, **kwargs):
                     logger = logging.getLogger('sysfree')
                     logger.info(f"Salida de inventario registrada para producto {detalle.producto.codigo} - {detalle.producto.nombre}, cantidad {detalle.cantidad}, pedido {instance.numero}")
                     
+                    # Verificar si el stock está bajo el umbral mínimo
+                    if detalle.producto.stock <= detalle.producto.stock_minimo:
+                        from inventario.services.stock_notification_service import StockNotificationService
+                        StockNotificationService.notificar_stock_bajo(detalle.producto)
+                    
                 except ValueError as e:
                     # Manejar el caso de stock insuficiente
                     import logging
