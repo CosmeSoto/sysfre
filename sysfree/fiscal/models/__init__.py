@@ -3,6 +3,9 @@ from .cuenta_contable import CuentaContable
 from .asiento_contable import AsientoContable
 from .linea_asiento import LineaAsiento
 from .comprobante import Comprobante
+from .impuesto import Impuesto
+from .retencion import Retencion
+from .comprobante_retencion import ComprobanteRetencion, DetalleRetencion
 
 __all__ = [
     'PeriodoFiscal',
@@ -10,4 +13,8 @@ __all__ = [
     'AsientoContable',
     'LineaAsiento',
     'Comprobante',
+    'Impuesto',
+    'Retencion',
+    'ComprobanteRetencion',
+    'DetalleRetencion',
 ]

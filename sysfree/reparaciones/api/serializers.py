@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from reparaciones.models import Reparacion, SeguimientoReparacion, RepuestoReparacion
+from reparaciones.models import Reparacion, SeguimientoReparacion, RepuestoReparacion, ServicioReparacion
 
 
 class SeguimientoReparacionSerializer(serializers.ModelSerializer):
@@ -35,8 +35,7 @@ class ReparacionSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'numero', 'cliente', 'cliente_nombre', 'fecha_recepcion',
             'fecha_estimada_entrega', 'fecha_entrega', 'tipo_equipo', 'marca',
-            'modelo', 'numero_serie', 'accesorios', 'problema_reportado',
-            'diagnostico', 'solucion', 'observaciones', 'estado', 'prioridad',
+            'modelo', 'problema_reportado', 'estado', 'prioridad',
             'tecnico', 'tecnico_nombre', 'costo_diagnostico', 'costo_reparacion',
             'costo_repuestos', 'total', 'facturado', 'factura', 'seguimientos',
             'repuestos'
@@ -50,3 +49,12 @@ class ReparacionSerializer(serializers.ModelSerializer):
         if obj.tecnico:
             return f"{obj.tecnico.nombres} {obj.tecnico.apellidos}"
         return None
+
+
+class ServicioReparacionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ServicioReparacion
+        fields = [
+            'id', 'nombre', 'descripcion', 'tipo', 'precio', 'tiempo_estimado',
+            'producto', 'requiere_diagnostico_previo', 'disponible_online', 'activo'
+        ]

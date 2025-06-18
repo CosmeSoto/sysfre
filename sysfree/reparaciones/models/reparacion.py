@@ -58,7 +58,7 @@ class Reparacion(ModeloBase):
         null=True,
         blank=True
     )
-    public_url = models.URLField(_('URL pública'), max_length=200, unique=True, blank=True)
+    public_url = models.URLField(_('URL pública'), max_length=200, blank=True, null=True)
     fecha_recepcion = models.DateTimeField(_('fecha recepción'), auto_now_add=True)
     fecha_estimada_entrega = models.DateField(_('fecha estimada entrega'), null=True, blank=True)
     fecha_entrega = models.DateTimeField(_('fecha entrega'), null=True, blank=True)

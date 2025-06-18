@@ -27,7 +27,9 @@ class ServicioReparacion(ModeloBase):
         Producto,
         verbose_name=_('producto asociado'),
         on_delete=models.CASCADE,
-        related_name='servicio_reparacion'
+        related_name='servicio_reparacion',
+        null=True,
+        blank=True
     )
     reparaciones = models.ManyToManyField(
         Reparacion,

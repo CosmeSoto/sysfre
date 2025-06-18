@@ -4,6 +4,7 @@ from .repuesto import RepuestoReparacion
 from .servicio import ServicioReparacion
 from .cita_servicio import CitaServicio
 from .garantia_reparacion import GarantiaReparacion
+from .detalle_servicio import DetalleServicio
 
 __all__ = [
     'Reparacion',
@@ -11,5 +12,6 @@ __all__ = [
     'RepuestoReparacion',
     'ServicioReparacion',
     'CitaServicio',
-    'GarantiaReparacion'
+    'GarantiaReparacion',
+    'DetalleServicio'
 ]

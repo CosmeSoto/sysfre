@@ -2,10 +2,11 @@ from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from reparaciones.models import Reparacion, SeguimientoReparacion, RepuestoReparacion
+from reparaciones.models import Reparacion, SeguimientoReparacion, RepuestoReparacion, ServicioReparacion
 from reparaciones.services.reparacion_service import ReparacionService
 from .serializers import (
-    ReparacionSerializer, SeguimientoReparacionSerializer, RepuestoReparacionSerializer
+    ReparacionSerializer, SeguimientoReparacionSerializer, RepuestoReparacionSerializer,
+    ServicioReparacionSerializer
 )
 
 
@@ -16,7 +17,7 @@ class ReparacionViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
     search_fields = [
         'numero', 'cliente__nombres', 'cliente__apellidos', 'cliente__nombre_comercial',
-        'tipo_equipo', 'marca', 'modelo', 'numero_serie'
+        'tipo_equipo', 'marca', 'modelo'
     ]
     filterset_fields = ['estado', 'prioridad', 'tecnico', 'facturado']
     ordering_fields = ['fecha_recepcion', 'fecha_estimada_entrega', 'prioridad']
@@ -43,8 +44,7 @@ class ReparacionViewSet(viewsets.ModelViewSet):
                 marca=marca,
                 modelo=modelo,
                 problema_reportado=problema_reportado,
-                numero_serie=request.data.get('numero_serie', ''),
-                accesorios=request.data.get('accesorios', ''),
+
                 prioridad=request.data.get('prioridad', 'media'),
                 tecnico_id=request.data.get('tecnico_id'),
                 fecha_estimada_entrega=request.data.get('fecha_estimada_entrega'),
@@ -80,6 +80,38 @@ class ReparacionViewSet(viewsets.ModelViewSet):
             
             serializer = self.get_serializer(reparacion)
             return Response(serializer.data)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['post'])
+    def agregar_servicio(self, request, pk=None):
+        reparacion = self.get_object()
+        servicio_id = request.data.get('servicio')
+        precio = request.data.get('precio')
+        notas = request.data.get('notas', '')
+        
+        if not servicio_id:
+            return Response(
+                {'error': 'Se requiere un servicio'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            from reparaciones.models import DetalleServicio
+            servicio = ServicioReparacion.objects.get(id=servicio_id)
+            
+            detalle = DetalleServicio.objects.create(
+                reparacion=reparacion,
+                servicio=servicio,
+                precio=precio or servicio.precio,
+                notas=notas
+            )
+            
+            # Actualizar el costo de reparación
+            reparacion.costo_reparacion += detalle.precio
+            reparacion.save()
+            
+            return Response({'status': 'servicio agregado'}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     
