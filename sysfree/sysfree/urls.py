@@ -31,7 +31,7 @@ urlpatterns = [
     path('tienda/', include('ecommerce.urls', namespace='ecommerce')),
     
     # Monitoreo - Protegido por login_required
-    path('metrics/', login_required(metrics_view), name='prometheus-metrics'), # Renombrado para evitar colisión si 'metrics' se usa en otro lado y solo una definición.
+    path('metrics/', login_required(metrics_view), name='prometheus-metrics'),
 ]
 
 # Servir archivos estáticos y media solo en desarrollo

@@ -1,6 +1,6 @@
 # SysFree - Sistema de Gestión Empresarial
 
-SysFree es un sistema completo de gestión empresarial que incluye módulos de inventario, ventas, clientes, reparaciones, contabilidad y tienda online.
+SysFree es un sistema completo de gestión empresarial que incluye módulos de inventario, ventas, clientes, reparaciones, contabilidad y tienda online con monitoreo avanzado.
 
 ## Características
 
@@ -11,59 +11,250 @@ SysFree es un sistema completo de gestión empresarial que incluye módulos de i
 - **Contabilidad**: Asientos contables y plan de cuentas
 - **Reportes**: Generación de informes personalizados
 - **Tienda Online**: Catálogo de productos y carrito de compras
+- **Monitoreo**: Métricas de Prometheus, tareas asíncronas con Celery
 
-## Requisitos
+## Requisitos del Sistema
 
-- Node.js 14+
-- Python 3.8+
-- PostgreSQL 12+
+- **Python**: 3.8+
+- **Node.js**: 14+
+- **PostgreSQL**: 12+
+- **Redis**: 6+ (para Celery y cache)
+- **Sistema Operativo**: Linux/macOS/Windows
 
-## Instalación
+## Instalación Completa
 
-### Backend
+### 1. Configuración del Entorno
 
 ```bash
-cd sysfree/backend
-python -m venv venv
-source venv/bin/activate  # En Windows: venv\Scripts\activate
+# Clonar el repositorio
+git clone <repository-url>
+cd freecom
+
+# Crear entorno virtual
+python -m venv env
+source env/bin/activate  # Linux/macOS
+# env\Scripts\activate   # Windows
+
+# Instalar dependencias
 pip install -r requirements.txt
+```
+
+### 2. Configuración de Base de Datos
+
+```bash
+# Crear base de datos PostgreSQL
+createdb sysfree_db
+
+# Configurar variables de entorno (.env)
+cp sysfree/.env.example sysfree/.env
+# Editar .env con tus credenciales
+```
+
+### 3. Migración y Configuración Inicial
+
+```bash
+cd sysfree
 python manage.py migrate
 python manage.py createsuperuser
-python manage.py runserver
+python manage.py collectstatic
 ```
 
-### Frontend
+### 4. Frontend (Opcional)
 
 ```bash
-cd sysfree/frontend
+cd frontend
 npm install
-npm start
+npm run build
 ```
 
-## Uso
+## Servicios del Sistema
 
-Accede a la aplicación en http://localhost:3000
+### Iniciar Todos los Servicios
 
-Usuario: admin@example.com
-Contraseña: la que configuraste al crear el superusuario
+```bash
+# 1. Servidor Django
+cd sysfree
+source ../env/bin/activate
+python manage.py runserver
 
-## Pruebas
+# 2. Celery Worker (nueva terminal)
+cd sysfree
+source ../env/bin/activate
+celery -A sysfree worker --loglevel=info --detach
+
+# 3. Celery Beat Scheduler (nueva terminal)
+cd sysfree
+source ../env/bin/activate
+celery -A sysfree beat --loglevel=info --detach
+```
+
+### Verificar Estado de Servicios
+
+```bash
+# Verificar procesos activos
+ps aux | grep -E "(runserver|celery)" | grep -v grep
+
+# Verificar métricas de Prometheus
+curl http://localhost:8000/metrics/ | head -10
+
+# Verificar logs
+tail -f sysfree/logs/sysfree.log
+```
+
+### Detener Servicios
+
+```bash
+# Detener Celery
+pkill -f "celery.*sysfree"
+
+# Detener Django
+pkill -f "python manage.py runserver"
+```
+
+## Monitoreo y Métricas
+
+### Endpoint de Métricas
+- **URL**: `http://localhost:8000/metrics/`
+- **Autenticación**: Requiere login de Django
+- **Formato**: Prometheus metrics
+
+### Métricas Disponibles
+- `cpu_usage_percent`: Uso de CPU del sistema
+- `memory_usage_bytes`: Uso de memoria en bytes
+- `celery_task_total`: Total de tareas de Celery procesadas
+- `celery_task_duration_seconds`: Duración de tareas de Celery
+- `http_requests_total`: Total de solicitudes HTTP
+- `db_query_total`: Total de consultas a la base de datos
+
+### Configuración de Prometheus
+
+```yaml
+# monitoring/prometheus/prometheus.yml
+scrape_configs:
+  - job_name: 'django'
+    static_configs:
+      - targets: ['localhost:8000']
+    metrics_path: '/metrics/'
+```
+
+## Tareas Programadas
+
+### Tareas Automáticas (Celery Beat)
+- **Métricas del Sistema**: Cada 60 segundos
+- **Configuración**: `sysfree/settings.py` → `CELERY_BEAT_SCHEDULE`
+
+### Ejecutar Tareas Manualmente
+
+```bash
+cd sysfree
+source ../env/bin/activate
+
+# Actualizar métricas del sistema
+python -c "from core.tasks import update_system_metrics_task; update_system_metrics_task.delay()"
+```
+
+## Configuración de Producción
+
+### Variables de Entorno Importantes
+
+```bash
+# .env
+DEBUG=False
+SECRET_KEY=tu-clave-secreta-segura
+DB_NAME=sysfree_prod
+DB_USER=sysfree_user
+DB_PASSWORD=password-seguro
+CACHE_LOCATION=redis://localhost:6379/1
+PROMETHEUS_ALLOWED_IPS=127.0.0.1,::1,tu-ip-monitoreo
+```
+
+### Servicios en Producción
+
+```bash
+# Usar supervisor o systemd para gestionar servicios
+# Ejemplo con systemd:
+
+# /etc/systemd/system/sysfree-celery.service
+# /etc/systemd/system/sysfree-beat.service
+# /etc/systemd/system/sysfree-django.service
+
+sudo systemctl enable sysfree-celery sysfree-beat sysfree-django
+sudo systemctl start sysfree-celery sysfree-beat sysfree-django
+```
+
+## Solución de Problemas
+
+### Problemas Comunes
+
+1. **Celery no inicia**:
+   ```bash
+   # Verificar Redis
+   redis-cli ping
+   
+   # Verificar configuración
+   cd sysfree && python -c "from sysfree import settings; print(settings.CELERY_BROKER_URL)"
+   ```
+
+2. **Métricas no aparecen**:
+   ```bash
+   # Verificar permisos de IP
+   curl -H "X-Forwarded-For: 127.0.0.1" http://localhost:8000/metrics/
+   ```
+
+3. **Base de datos no conecta**:
+   ```bash
+   # Verificar conexión
+   cd sysfree && python manage.py dbshell
+   ```
+
+### Logs Importantes
+
+```bash
+# Logs del sistema
+tail -f sysfree/logs/sysfree.log
+
+# Logs de errores
+tail -f sysfree/logs/error.log
+
+# Logs de seguridad
+tail -f sysfree/logs/security.log
+```
+
+## Desarrollo y Pruebas
 
 ### Pruebas End-to-End
 
-Para ejecutar las pruebas end-to-end con Cypress:
-
 ```bash
-cd sysfree/frontend
+cd frontend
 npm run cypress:open  # Modo interactivo
 npm run cypress:run   # Modo headless
 ```
 
-## Optimizaciones
+### Pruebas del Backend
 
-El sistema incluye las siguientes optimizaciones:
+```bash
+cd sysfree
+python manage.py test
+```
 
-- Lazy loading para componentes grandes
-- Memoización para evitar renderizados innecesarios
-- Carga diferida de imágenes
-- Componentes accesibles según estándares WCAG
+## Arquitectura del Sistema
+
+```
+freecom/
+├── sysfree/           # Backend Django
+│   ├── core/          # Módulo principal
+│   ├── api/           # API REST
+│   ├── monitoring/    # Configuración Prometheus
+│   └── logs/          # Archivos de log
+├── frontend/          # Frontend React
+├── env/               # Entorno virtual Python
+└── requirements.txt   # Dependencias Python
+```
+
+## Contribución
+
+1. Fork el proyecto
+2. Crear rama feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit cambios (`git commit -am 'Agregar nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Crear Pull Request
