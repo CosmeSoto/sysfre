@@ -58,7 +58,16 @@ class EmpresaAdmin(admin.ModelAdmin):
             'fields': ('facebook', 'instagram', 'twitter')
         }),
         (_('Facturación Electrónica'), {
-            'fields': ('ambiente_facturacion', 'certificado_digital', 'clave_certificado')
+            'classes': ('collapse',),
+            'fields': (
+                'ambiente_facturacion',
+                'ruta_certificado',
+                'clave_certificado',
+                'url_recepcion_pruebas',
+                'url_autorizacion_pruebas',
+                'url_recepcion_produccion',
+                'url_autorizacion_produccion',
+            )
         }),
         (_('Auditoría'), {
             'fields': ('activo', 'creado_por', 'modificado_por', 'fecha_creacion', 'fecha_modificacion')

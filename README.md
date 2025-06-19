@@ -12,6 +12,7 @@ SysFree es un sistema completo de gestión empresarial que incluye módulos de i
 - **Reportes**: Generación de informes personalizados
 - **Tienda Online**: Catálogo de productos y carrito de compras
 - **Monitoreo**: Métricas de Prometheus, tareas asíncronas con Celery
+- **Facturación Electrónica (Ecuador)**: Generación, firma y envío de comprobantes electrónicos al SRI.
 
 ## Requisitos del Sistema
 
@@ -235,6 +236,32 @@ npm run cypress:run   # Modo headless
 ```bash
 cd sysfree
 python manage.py test
+
+## Facturación Electrónica (Ecuador)
+
+El sistema implementa un pipeline completo para la facturación electrónica, cumpliendo con los requisitos del SRI de Ecuador.
+
+### Arquitectura
+
+El proceso está orquestado a través de una serie de servicios especializados y una tarea asíncrona para garantizar un rendimiento óptimo y un código limpio.
+
+1.  **`VentaService` (`ventas.services`)**: Se encarga de la lógica de negocio para crear y gestionar ventas.
+2.  **`ComprobanteService` (`fiscal.services`)**: Contiene la lógica principal para:
+    *   **Generar el XML** del comprobante.
+    *   **Firmar digitalmente** el XML con el certificado de la empresa.
+    *   **Enviar el comprobante al SRI** para su recepción y autorización.
+3.  **`sri_utils` (`fiscal.utils`)**: Módulo de utilidades para funciones específicas del SRI, como la generación de la **Clave de Acceso**.
+4.  **`RIDEGeneratorService` (`reportes.services`)**: Genera la representación gráfica (RIDE) en formato PDF del comprobante autorizado.
+5.  **`procesar_facturacion_electronica_task` (`ventas.tasks`)**: Una tarea asíncrona de Celery que orquesta todo el flujo de trabajo en segundo plano, desde la generación del XML hasta la notificación por correo al cliente.
+
+### Configuración
+
+Para que la facturación electrónica funcione, es necesario configurar los siguientes campos en el panel de administración, dentro del modelo **Empresa** (`/admin/core/empresa/`):
+
+-   **Ambiente de Facturación**: Seleccionar "Pruebas" o "Producción".
+-   **Ruta del Certificado P12**: La ruta absoluta en el servidor donde se encuentra almacenado el archivo `.p12` de la firma electrónica.
+-   **Clave del Certificado**: La contraseña para acceder al certificado.
+-   **URLs de Web Services**: Las URLs para los servicios de recepción y autorización del SRI. Vienen pre-llenadas con los valores por defecto, pero son editables.
 ```
 
 ## Arquitectura del Sistema

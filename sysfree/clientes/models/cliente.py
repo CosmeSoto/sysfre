@@ -67,3 +67,14 @@ class Cliente(ModeloBase):
     def tiene_acceso_portal(self):
         """Indica si el cliente tiene acceso al portal de clientes."""
         return self.usuario is not None and self.usuario.is_active
+
+    def get_tipo_identificacion_sri(self):
+        """
+        Retorna el código del tipo de identificación según el SRI.
+        """
+        mapa_sri = {
+            'ruc': '04',
+            'cedula': '05',
+            'pasaporte': '06',
+        }
+        return mapa_sri.get(self.tipo_identificacion, '07') # 07 = Consumidor final (default)

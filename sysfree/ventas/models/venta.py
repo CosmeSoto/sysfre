@@ -121,15 +121,29 @@ class Venta(ModeloBase):
             raise ValidationError(_('Las proformas no pueden estar en estado emitida, pagada o anulada.'))
     
     def save(self, *args, **kwargs):
-        """Sincroniza subtotal, descuento y total con los detalles."""
-        # Guardar primero para obtener un pk
+        """Sobrescribe el método save para realizar validaciones."""
+        self.full_clean()
         super().save(*args, **kwargs)
-        # Solo sincronizar si la instancia ya tiene un pk
-        if self.pk and self.detalles.exists():
-            self.subtotal = sum(detalle.subtotal for detalle in self.detalles.all())
-            self.descuento = sum(detalle.descuento for detalle in self.detalles.all())
-            self.total = sum(detalle.total for detalle in self.detalles.all())
-            super().save(*args, **kwargs)
+
+    def actualizar_totales(self):
+        """
+        Calcula y actualiza los totales de la venta basándose en sus detalles.
+        Este método debe ser llamado explícitamente cuando los detalles cambian.
+        """
+        from django.db.models import Sum, F
+
+        # Usamos aggregate para una consulta más eficiente
+        agregados = self.detalles.aggregate(
+            subtotal_total=Sum('subtotal'),
+            descuento_total=Sum('descuento'),
+            total_final=Sum('total')
+        )
+
+        self.subtotal = agregados.get('subtotal_total') or 0
+        self.descuento = agregados.get('descuento_total') or 0
+        self.total = agregados.get('total_final') or 0
+        
+        self.save(update_fields=['subtotal', 'descuento', 'total'])
     
     @property
     def iva(self):

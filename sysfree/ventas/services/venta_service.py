@@ -8,6 +8,7 @@ from inventario.models import Producto
 from core.models import ConfiguracionSistema
 from core.services import IVAService
 from core.log_utils import log_function_call
+from inventario.services import InventarioService
 
 logger = logging.getLogger('sysfree')
 
@@ -96,42 +97,63 @@ class VentaService:
             modificado_por=usuario
         )
         
-        subtotal = 0
-        descuento = 0
+        detalles_a_crear = []
+        productos_a_actualizar = []
         
+        tipo_iva_default = IVAService.get_default()
+
         for item in items:
-            producto = Producto.objects.get(id=item['producto_id'])
+            try:
+                producto = Producto.objects.select_related('tipo_iva').get(id=item['producto_id'])
+            except Producto.DoesNotExist:
+                raise ValueError(f"Producto con id {item['producto_id']} no encontrado.")
+
             cantidad = item.get('cantidad', 1)
             precio_unitario = item.get('precio_unitario', producto.precio_venta)
             item_descuento = item.get('descuento', 0)
             
+            if producto.es_inventariable and producto.stock < cantidad:
+                raise ValueError(f"Stock insuficiente para el producto {producto.nombre}.")
+
             subtotal_item = cantidad * precio_unitario - item_descuento
             
-            # Usar el servicio IVA para calcular el IVA
-            tipo_iva = item.get('tipo_iva') or producto.tipo_iva or IVAService.get_default()
+            tipo_iva = item.get('tipo_iva') or producto.tipo_iva or tipo_iva_default
             iva_item, total_item = IVAService.calcular_iva(subtotal_item, tipo_iva)
             
-            DetalleVenta.objects.create(
-                venta=venta,
-                producto=producto,
-                cantidad=cantidad,
-                precio_unitario=precio_unitario,
-                descuento=item_descuento,
-                tipo_iva=tipo_iva,
-                iva=iva_item,
-                subtotal=subtotal_item,
-                total=total_item,
-                creado_por=usuario,
-                modificado_por=usuario
+            detalles_a_crear.append(
+                DetalleVenta(
+                    venta=venta,
+                    producto=producto,
+                    cantidad=cantidad,
+                    precio_unitario=precio_unitario,
+                    descuento=item_descuento,
+                    tipo_iva=tipo_iva,
+                    iva=iva_item,
+                    subtotal=subtotal_item,
+                    total=total_item,
+                    creado_por=usuario,
+                    modificado_por=usuario
+                )
             )
             
-            subtotal += subtotal_item
-            descuento += item_descuento
+            if producto.es_inventariable:
+                productos_a_actualizar.append({'producto': producto, 'cantidad': cantidad})
+
+        DetalleVenta.objects.bulk_create(detalles_a_crear)
         
-        venta.subtotal = subtotal
-        venta.descuento = descuento
-        venta.total = sum(detalle.total for detalle in venta.detalles.all())
-        venta.save()
+        # Actualizar stock y totales
+        venta.actualizar_totales()
+        
+        for item_actualizar in productos_a_actualizar:
+            InventarioService.registrar_salida(
+                producto=item_actualizar['producto'],
+                cantidad=item_actualizar['cantidad'],
+                origen='venta',
+                documento=venta.numero,
+                usuario=usuario,
+                referencia_id=venta.id,
+                referencia_tipo='Venta'
+            )
         
         # Invalidar caché
         cls.invalidar_cache_venta()

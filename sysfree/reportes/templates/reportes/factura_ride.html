@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Factura {{ venta.numero }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1cm;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 10px;
+            color: #333;
+        }
+        .header, .footer {
+            width: 100%;
+            position: fixed;
+        }
+        .header { top: 0; }
+        .footer { bottom: 0; }
+        .container {
+            margin-top: 4cm;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 5px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .text-right { text-align: right; }
+        .total-section {
+            margin-top: 20px;
+            width: 40%;
+            margin-left: 60%;
+        }
+        .total-section td {
+            border: none;
+        }
+        .info-box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .qr-code {
+            width: 100px;
+            height: 100px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <table style="border: none;">
+            <tr>
+                <td style="width: 50%; border: none;">
+                    {% if empresa.logo %}
+                        <img src="{{ empresa.logo.path }}" alt="Logo" style="max-height: 80px;">
+                    {% endif %}
+                    <h2>{{ empresa.nombre }}</h2>
+                    <p>{{ empresa.nombre_comercial }}</p>
+                </td>
+                <td style="width: 50%; border: none;" class="text-right">
+                    <div class="info-box">
+                        <h3>FACTURA</h3>
+                        <p><strong>No. {{ venta.numero }}</strong></p>
+                        <p><strong>NÚMERO DE AUTORIZACIÓN:</strong></p>
+                        <p>{{ venta.numero_autorizacion }}</p>
+                        <p><strong>FECHA Y HORA DE AUTORIZACIÓN:</strong></p>
+                        <p>{{ venta.fecha_autorizacion|date:"d/m/Y H:i:s" }}</p>
+                        <p><strong>AMBIENTE:</strong> {{ empresa.get_ambiente_facturacion_display }}</p>
+                        <p><strong>EMISIÓN:</strong> NORMAL</p>
+                        <p><strong>CLAVE DE ACCESO:</strong></p>
+                        <img src="{{ qr_code }}" alt="QR Code" class="qr-code">
+                        <p>{{ venta.clave_acceso }}</p>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="container">
+        <div class="info-box">
+            <p><strong>Razón Social / Nombres y Apellidos:</strong> {{ venta.cliente.nombre_completo }}</p>
+            <p><strong>Identificación:</strong> {{ venta.cliente.identificacion }}</p>
+            <p><strong>Fecha Emisión:</strong> {{ venta.fecha|date:"d/m/Y" }}</p>
+            <p><strong>Dirección:</strong> {{ venta.direccion_facturacion.direccion if venta.direccion_facturacion else venta.cliente.direccion }}</p>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Cod. Principal</th>
+                    <th>Descripción</th>
+                    <th>Cantidad</th>
+                    <th>Precio Unitario</th>
+                    <th>Descuento</th>
+                    <th>Precio Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for detalle in detalles %}
+                <tr>
+                    <td>{{ detalle.producto.codigo }}</td>
+                    <td>{{ detalle.producto.nombre }}</td>
+                    <td class="text-right">{{ detalle.cantidad|floatformat:2 }}</td>
+                    <td class="text-right">${{ detalle.precio_unitario|floatformat:2 }}</td>
+                    <td class="text-right">${{ detalle.descuento|floatformat:2 }}</td>
+                    <td class="text-right">${{ detalle.subtotal|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="total-section">
+            <table>
+                <tr>
+                    <td>SUBTOTAL 12%</td>
+                    <td class="text-right">${{ venta.subtotal|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td>DESCUENTO</td>
+                    <td class="text-right">${{ venta.descuento|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td>VALOR IVA 12%</td>
+                    <td class="text-right">${{ venta.iva|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td><strong>VALOR TOTAL</strong></td>
+                    <td class="text-right"><strong>${{ venta.total|floatformat:2 }}</strong></td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+</body>
+</html>

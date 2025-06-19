@@ -32,17 +32,23 @@ class Empresa(ModeloBase):
     # Configuración de facturación electrónica
     ambiente_facturacion = models.CharField(
         _('ambiente de facturación'),
-        max_length=10,
-        choices=(('pruebas', _('Pruebas')), ('produccion', _('Producción'))),
-        default='pruebas'
+        max_length=1,
+        choices=(('1', _('Pruebas')), ('2', _('Producción'))),
+        default='1'
     )
-    certificado_digital = models.FileField(
-        _('certificado digital'),
-        upload_to='empresa/certificados/',
-        null=True,
-        blank=True
+    ruta_certificado = models.CharField(
+        _('ruta del certificado P12'),
+        max_length=255,
+        blank=True,
+        help_text=_("Ruta absoluta al archivo .p12 en el servidor.")
     )
-    clave_certificado = models.CharField(_('clave del certificado'), max_length=100, blank=True)
+    clave_certificado = models.CharField(_('clave del certificado'), max_length=255, blank=True)
+    
+    # URLs de los web services del SRI
+    url_recepcion_pruebas = models.URLField(_('URL Recepción (Pruebas)'), blank=True, default='https://celcer.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?wsdl')
+    url_autorizacion_pruebas = models.URLField(_('URL Autorización (Pruebas)'), blank=True, default='https://celcer.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline?wsdl')
+    url_recepcion_produccion = models.URLField(_('URL Recepción (Producción)'), blank=True, default='https://cel.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?wsdl')
+    url_autorizacion_produccion = models.URLField(_('URL Autorización (Producción)'), blank=True, default='https://cel.sri.gob.ec/comprobantes-electronicos-ws/AutorizacionComprobantesOffline?wsdl')
     
     class Meta:
         verbose_name = _('empresa')
