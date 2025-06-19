@@ -63,6 +63,8 @@ class ClienteAdmin(admin.ModelAdmin):
     readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
     inlines = [ContactoClienteInline, DireccionClienteInline, PedidoInline]
     actions = ['activar_clientes', 'desactivar_clientes', 'enviar_correo_bienvenida']
+    ordering = ('apellidos', 'nombres')
+    autocomplete_fields = ['usuario']
 
     fieldsets = (
         (None, {'fields': ('tipo_identificacion', 'identificacion')}),
@@ -157,6 +159,7 @@ class ContactoClienteAdmin(admin.ModelAdmin):
         'cliente__nombres', 'cliente__apellidos', 'cliente__nombre_comercial'
     )
     readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
+    autocomplete_fields = ['cliente']
 
     fieldsets = (
         (None, {'fields': ('cliente', 'nombres', 'apellidos', 'cargo')}),
@@ -181,6 +184,7 @@ class DireccionClienteAdmin(admin.ModelAdmin):
         'cliente__nombres', 'cliente__apellidos', 'cliente__nombre_comercial'
     )
     readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
+    autocomplete_fields = ['cliente']
 
     fieldsets = (
         (None, {'fields': ('cliente', 'tipo', 'nombre')}),

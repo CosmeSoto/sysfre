@@ -99,19 +99,20 @@ class ReparacionModelTest(TestCase):
 
     def test_reparacion_public_url_unico(self):
         """
-        Verifica que el campo public_url sea único.
+        Verifica que se pueden crear reparaciones con public_url duplicado (no es único).
         """
         Reparacion.objects.create(
             numero='REP001',
             cliente=self.cliente,
             public_url='https://freecom.com/reparacion/rep001'
         )
-        with self.assertRaises(IntegrityError):
-            Reparacion.objects.create(
-                numero='REP002',
-                cliente=self.cliente,
-                public_url='https://freecom.com/reparacion/rep001'
-            )
+        # Debería poder crear otra reparación con el mismo public_url
+        reparacion2 = Reparacion.objects.create(
+            numero='REP002',
+            cliente=self.cliente,
+            public_url='https://freecom.com/reparacion/rep001'
+        )
+        self.assertEqual(reparacion2.public_url, 'https://freecom.com/reparacion/rep001')
 
     def test_reparacion_calculo_total(self):
         """

@@ -3,7 +3,8 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
 from django.contrib.auth import get_user_model
-from fiscal.models import Impuesto, Retencion, ComprobanteRetencion
+from fiscal.models import Retencion, ComprobanteRetencion
+from core.models import TipoIVA
 from ventas.models import Venta
 from clientes.models import Cliente
 from inventario.models import Producto, Categoria
@@ -71,8 +72,8 @@ class FiscalAPITests(TestCase):
             modificado_por=self.user
         )
         
-        # Crear impuesto de prueba
-        self.impuesto = Impuesto.objects.create(
+        # Crear tipo IVA de prueba
+        self.impuesto = TipoIVA.objects.create(
             codigo='IVA',
             nombre='IVA',
             porcentaje=12,
@@ -127,7 +128,7 @@ class FiscalAPITests(TestCase):
         response = self.client.get(reverse('api:impuesto-detail', args=[self.impuesto.id]))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['codigo'], 'IVA')
-        self.assertEqual(response.data['porcentaje'], 12)
+        self.assertEqual(response.data['porcentaje'], '12.00')
     
     def test_create_impuesto(self):
         """Prueba crear un impuesto."""
@@ -140,7 +141,7 @@ class FiscalAPITests(TestCase):
         }
         response = self.client.post(reverse('api:impuesto-list'), data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(Impuesto.objects.count(), 2)
+        self.assertEqual(TipoIVA.objects.count(), 2)
     
     def test_update_impuesto(self):
         """Prueba actualizar un impuesto."""
@@ -176,17 +177,11 @@ class FiscalAPITests(TestCase):
         """Prueba crear un comprobante de retención."""
         self.client.force_authenticate(user=self.admin_user)
         data = {
+            'numero': 'RET-002',
             'venta': self.venta.id,
             'fecha_emision': self.venta.fecha.strftime('%Y-%m-%d'),
             'base_imponible': 200,
-            'total_retenido': 7.2,
-            'retenciones': [
-                {
-                    'retencion': self.retencion.id,
-                    'base_imponible': 200,
-                    'valor': 7.2
-                }
-            ]
+            'total_retenido': 7.2
         }
         response = self.client.post(reverse('api:comprobanteretencion-list'), data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)

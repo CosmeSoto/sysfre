@@ -1,6 +1,7 @@
 """
 Servicio para generar reportes de productos con stock bajo.
 """
+from django.db import models
 from django.db.models import F, ExpressionWrapper, BooleanField
 from inventario.models import Producto
 

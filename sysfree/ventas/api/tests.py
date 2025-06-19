@@ -101,7 +101,6 @@ class VentaTests(APITestCase):
             tipo='factura',
             estado='borrador',
             subtotal=55.00,
-            iva=6.60,
             total=61.60,
             creado_por=self.user,
             modificado_por=self.user
@@ -114,9 +113,6 @@ class VentaTests(APITestCase):
             cantidad=2,
             precio_unitario=15.00,
             descuento=0,
-            subtotal=30.00,
-            iva=3.60,
-            total=33.60,
             creado_por=self.user,
             modificado_por=self.user
         )
@@ -127,9 +123,6 @@ class VentaTests(APITestCase):
             cantidad=1,
             precio_unitario=30.00,
             descuento=5.00,
-            subtotal=25.00,
-            iva=3.00,
-            total=28.00,
             creado_por=self.user,
             modificado_por=self.user
         )
@@ -156,7 +149,6 @@ class VentaTests(APITestCase):
             tipo='factura',
             estado='pendiente',
             subtotal=100.00,
-            iva=12.00,
             total=112.00,
             creado_por=self.user,
             modificado_por=self.user

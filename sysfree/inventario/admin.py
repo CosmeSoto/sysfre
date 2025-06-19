@@ -43,6 +43,8 @@ class CategoriaAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'ruta_completa', 'codigo', 'categoria_padre', 'orden', 'activo')
     list_filter = ('activo', 'categoria_padre')
     search_fields = ('nombre', 'codigo', 'descripcion')
+    ordering = ('nombre',)
+    autocomplete_fields = ['categoria_padre']
     list_editable = ('orden',)
     list_select_related = ('categoria_padre',)
     readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
@@ -81,8 +83,10 @@ class ProductoAdmin(admin.ModelAdmin):
         (_('Auditoría'), {'fields': ('creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )
     inlines = [VariacionInline]
-    autocomplete_fields = ['categoria', 'proveedores']
-    actions = ['marcar_como_destacado', 'quitar_destacado']
+    autocomplete_fields = ['categoria', 'tipo_iva']
+    filter_horizontal = ('proveedores',)
+    ordering = ('nombre',)
+    actions = ['marcar_como_destacado', 'quitar_destacado', 'activar_productos', 'desactivar_productos']
 
     def marcar_como_destacado(self, request, queryset):
         queryset.update(destacado=True)
@@ -92,12 +96,21 @@ class ProductoAdmin(admin.ModelAdmin):
         queryset.update(destacado=False)
     quitar_destacado.short_description = _('Quitar destacado')
 
+    def activar_productos(self, request, queryset):
+        queryset.update(activo=True)
+    activar_productos.short_description = _('Activar productos seleccionados')
+
+    def desactivar_productos(self, request, queryset):
+        queryset.update(activo=False)
+    desactivar_productos.short_description = _('Desactivar productos seleccionados')
+
 
 @admin.register(Proveedor)
 class ProveedorAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'ruc', 'telefono', 'email', 'dias_credito', 'limite_credito', 'estado', 'activo')
     list_filter = ('estado', 'activo')
     search_fields = ('nombre', 'ruc', 'email')
+    ordering = ('nombre',)
     list_editable = ('dias_credito', 'estado')
     readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
     fieldsets = (
@@ -143,6 +156,7 @@ class AlmacenAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'direccion', 'responsable', 'activo')
     list_filter = ('activo',)
     search_fields = ('nombre', 'direccion', 'responsable')
+    autocomplete_fields = ['responsable']
     list_editable = ('responsable',)
     readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
     fieldsets = (

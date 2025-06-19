@@ -2,11 +2,16 @@ from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
-from fiscal.models import PeriodoFiscal, CuentaContable, AsientoContable, LineaAsiento, Comprobante
+from fiscal.models import (
+    PeriodoFiscal, CuentaContable, AsientoContable, LineaAsiento, Comprobante,
+    Retencion, ComprobanteRetencion
+)
+from core.models import TipoIVA
 from fiscal.services.contabilidad_service import ContabilidadService
 from .serializers import (
     PeriodoFiscalSerializer, CuentaContableSerializer,
-    AsientoContableSerializer, LineaAsientoSerializer, ComprobanteSerializer
+    AsientoContableSerializer, LineaAsientoSerializer, ComprobanteSerializer,
+    TipoIVASerializer, RetencionSerializer, ComprobanteRetencionSerializer
 )
 
 
@@ -145,4 +150,48 @@ class ComprobanteViewSet(viewsets.ModelViewSet):
     search_fields = ['numero', 'proveedor__nombre', 'proveedor__ruc']
     filterset_fields = ['tipo', 'estado', 'proveedor']
     ordering_fields = ['fecha_emision', 'total']
+    ordering = ['-fecha_emision']
+
+
+class TipoIVAViewSet(viewsets.ModelViewSet):
+    queryset = TipoIVA.objects.all()
+    serializer_class = TipoIVASerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ['nombre', 'codigo']
+    filterset_fields = ['activo', 'es_default']
+    
+    def perform_create(self, serializer):
+        from core.services.iva_service import IVAService
+        super().perform_create(serializer)
+        IVAService.invalidar_cache()
+    
+    def perform_update(self, serializer):
+        from core.services.iva_service import IVAService
+        super().perform_update(serializer)
+        IVAService.invalidar_cache()
+    
+    def perform_destroy(self, instance):
+        from core.services.iva_service import IVAService
+        super().perform_destroy(instance)
+        IVAService.invalidar_cache()
+
+
+class RetencionViewSet(viewsets.ModelViewSet):
+    queryset = Retencion.objects.all()
+    serializer_class = RetencionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend]
+    search_fields = ['nombre', 'codigo']
+    filterset_fields = ['tipo', 'activo']
+
+
+class ComprobanteRetencionViewSet(viewsets.ModelViewSet):
+    queryset = ComprobanteRetencion.objects.all()
+    serializer_class = ComprobanteRetencionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [filters.SearchFilter, DjangoFilterBackend, filters.OrderingFilter]
+    search_fields = ['numero', 'venta__numero']
+    filterset_fields = ['venta']
+    ordering_fields = ['fecha_emision']
     ordering = ['-fecha_emision']

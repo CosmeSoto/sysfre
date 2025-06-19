@@ -1,5 +1,9 @@
 from rest_framework import serializers
-from fiscal.models import PeriodoFiscal, CuentaContable, AsientoContable, LineaAsiento, Comprobante
+from fiscal.models import (
+    PeriodoFiscal, CuentaContable, AsientoContable, LineaAsiento, Comprobante,
+    Retencion, ComprobanteRetencion
+)
+from core.models import TipoIVA
 
 
 class PeriodoFiscalSerializer(serializers.ModelSerializer):
@@ -52,4 +56,27 @@ class ComprobanteSerializer(serializers.ModelSerializer):
             'id', 'numero', 'tipo', 'fecha_emision', 'proveedor', 'proveedor_nombre',
             'subtotal', 'impuestos', 'total', 'estado', 'comprobante_relacionado',
             'asiento_contable', 'activo'
+        ]
+
+
+class TipoIVASerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TipoIVA
+        fields = ['id', 'nombre', 'codigo', 'porcentaje', 'descripcion', 'es_default', 'activo']
+
+
+class RetencionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Retencion
+        fields = ['id', 'nombre', 'codigo', 'porcentaje', 'tipo', 'activo']
+
+
+class ComprobanteRetencionSerializer(serializers.ModelSerializer):
+    venta_numero = serializers.ReadOnlyField(source='venta.numero')
+    
+    class Meta:
+        model = ComprobanteRetencion
+        fields = [
+            'id', 'numero', 'fecha_emision', 'venta', 'venta_numero',
+            'base_imponible', 'total_retenido', 'activo'
         ]
