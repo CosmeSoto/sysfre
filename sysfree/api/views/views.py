@@ -12,14 +12,14 @@ from ventas.models import Venta
 from reparaciones.models import Reparacion
 from ecommerce.models import Pedido
 
-from .serializers import (
+from ..serializers import (
     ProductoSerializer, ProductoDetalleSerializer, CategoriaSerializer,
     ClienteSerializer, VentaSerializer, ReparacionSerializer, PedidoSerializer
 )
-from .mixins import AuditModelMixin, MultiSerializerViewSetMixin, ExportableViewSetMixin, SafeDestroyModelMixin
-from .decorators import log_api_call, require_params
-from .utils import export_queryset_to_csv, export_queryset_to_excel
-from .exceptions import BusinessLogicException, ResourceNotFoundException
+from ..mixins import AuditModelMixin, MultiSerializerViewSetMixin, ExportableViewSetMixin, SafeDestroyModelMixin
+from ..decorators import log_api_call, require_params
+from ..utils import export_queryset_to_csv, export_queryset_to_excel
+from ..exceptions import BusinessLogicException, ResourceNotFoundException
 from core.services.cache_service import CacheService
 
 
