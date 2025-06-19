@@ -26,6 +26,7 @@ class RepuestoReparacionInline(admin.TabularInline):
     extra = 1
     fields = ('producto', 'cantidad', 'precio_unitario', 'subtotal')
     readonly_fields = ('subtotal',)
+    autocomplete_fields = ['producto']
 
 @admin.register(ServicioReparacion)
 class ServicioReparacionAdmin(admin.ModelAdmin):
@@ -39,6 +40,7 @@ class ServicioReparacionAdmin(admin.ModelAdmin):
         (_('Configuración'), {'fields': ('producto', 'requiere_diagnostico_previo', 'disponible_online')}),
         (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )
+    autocomplete_fields = ['producto']
 
     def producto_categoria(self, obj):
         """Muestra la categoría del producto asociado."""
@@ -77,6 +79,8 @@ class ReparacionAdmin(admin.ModelAdmin):
         (_('Facturación'), {'fields': ('facturado', 'factura')}),
         (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )
+    ordering = ('-fecha_recepcion',)
+    autocomplete_fields = ['cliente', 'tecnico', 'factura']
 
     def numero_factura(self, obj):
         """Muestra el número de la factura/proforma asociada."""
@@ -160,6 +164,7 @@ class SeguimientoReparacionAdmin(admin.ModelAdmin):
         (_('Notificación'), {'fields': ('notificado_cliente', 'metodo_notificacion', 'fecha_notificacion')}),
         (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )
+    autocomplete_fields = ['reparacion']
 
     def notificar_cliente(self, request, queryset):
         """Notifica al cliente sobre los seguimientos seleccionados."""
@@ -189,6 +194,7 @@ class RepuestoReparacionAdmin(admin.ModelAdmin):
         (None, {'fields': ('reparacion', 'producto', 'cantidad', 'precio_unitario', 'subtotal')}),
         (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )
+    autocomplete_fields = ['reparacion', 'producto']
 
     def producto_categoria(self, obj):
         """Muestra la categoría del producto."""
@@ -238,6 +244,9 @@ class CitaServicioAdmin(admin.ModelAdmin):
         (None, {'fields': ('cliente', 'fecha_hora', 'tipo_equipo', 'estado', 'reparacion')}),
         (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )
+    autocomplete_fields = ['reparacion']
+    ordering = ('-fecha_hora',)
+    autocomplete_fields = ['cliente', 'reparacion']
 
 @admin.register(GarantiaReparacion)
 class GarantiaReparacionAdmin(admin.ModelAdmin):

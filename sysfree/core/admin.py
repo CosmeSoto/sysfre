@@ -8,7 +8,6 @@ class ConfiguracionSistemaAdmin(admin.ModelAdmin):
     list_display = ('NOMBRE_EMPRESA', 'RUC', 'get_iva_porcentaje', 'activo')
     list_filter = ('activo', 'AMBIENTE_FACTURACION')
     search_fields = ('NOMBRE_EMPRESA', 'RUC')
-    autocomplete_fields = ['tipo_iva_default']
     
     def get_iva_porcentaje(self, obj):
         if obj.tipo_iva_default:
@@ -73,7 +72,6 @@ class SucursalAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'codigo', 'empresa', 'es_matriz', 'activo')
     list_filter = ('activo', 'es_matriz', 'empresa')
     search_fields = ('nombre', 'codigo', 'empresa__nombre')
-    autocomplete_fields = ['empresa']
     fieldsets = (
         (None, {
             'fields': ('empresa', 'nombre', 'codigo', 'direccion', 'telefono', 'email', 'es_matriz', 'horario')
@@ -125,7 +123,6 @@ class UsuarioAdmin(admin.ModelAdmin):
         }),
     )
     readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'ultimo_login')
-    filter_horizontal = ('groups', 'user_permissions')
 
 
 @admin.register(TipoIVA)

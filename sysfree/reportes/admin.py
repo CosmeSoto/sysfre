@@ -9,6 +9,7 @@ class ReporteAdmin(admin.ModelAdmin):
     list_filter = ('tipo', 'formato', 'es_publico', 'activo')
     search_fields = ('nombre', 'descripcion')
     readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
+    ordering = ('nombre',)
     
     fieldsets = (
         (None, {'fields': ('nombre', 'descripcion', 'tipo', 'formato')}),
@@ -23,6 +24,8 @@ class ProgramacionReporteAdmin(admin.ModelAdmin):
     list_filter = ('frecuencia', 'activo')
     search_fields = ('nombre', 'reporte__nombre', 'destinatarios')
     readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por', 'ultima_ejecucion', 'proxima_ejecucion')
+    autocomplete_fields = ['reporte']
+    ordering = ('nombre',)
     
     fieldsets = (
         (None, {'fields': ('reporte', 'nombre')}),
@@ -40,6 +43,8 @@ class HistorialReporteAdmin(admin.ModelAdmin):
     list_filter = ('estado', 'fecha_ejecucion')
     search_fields = ('reporte__nombre', 'mensaje_error')
     readonly_fields = ('fecha_ejecucion', 'fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
+    autocomplete_fields = ['reporte', 'programacion']
+    ordering = ('-fecha_ejecucion',)
     
     fieldsets = (
         (None, {'fields': ('reporte', 'programacion', 'duracion', 'estado')}),

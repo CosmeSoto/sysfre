@@ -18,6 +18,7 @@ class DetalleVentaInline(admin.TabularInline):
     extra = 1
     fields = ('producto', 'cantidad', 'precio_unitario', 'descuento', 'tipo_iva', 'subtotal', 'iva', 'total')
     readonly_fields = ('subtotal', 'iva', 'total')
+    autocomplete_fields = ['producto']
 
 class PagoInline(admin.TabularInline):
     """Inline para pagos."""
@@ -25,6 +26,7 @@ class PagoInline(admin.TabularInline):
     extra = 0
     fields = ('metodo', 'monto', 'referencia', 'estado', 'numero_tarjeta', 'banco')
     readonly_fields = ('fecha',)
+    autocomplete_fields = ['venta']
 
 class EnvioInline(admin.TabularInline):
     """Inline para envíos."""
@@ -32,6 +34,7 @@ class EnvioInline(admin.TabularInline):
     extra = 0
     fields = ('transportista', 'numero_seguimiento', 'estado', 'fecha_envio', 'fecha_entrega', 'notas')
     readonly_fields = ('fecha_entrega',)
+    autocomplete_fields = ['venta']
 
 class DetalleNotaCreditoInline(admin.TabularInline):
     """Inline para detalles de nota de crédito."""
@@ -39,6 +42,7 @@ class DetalleNotaCreditoInline(admin.TabularInline):
     extra = 1
     fields = ('producto', 'cantidad', 'precio_unitario', 'tipo_iva', 'subtotal', 'iva', 'total')
     readonly_fields = ('subtotal', 'iva', 'total')
+    autocomplete_fields = ['producto']
 
 # Admin classes
 @admin.register(Venta)
@@ -72,6 +76,11 @@ class VentaAdmin(admin.ModelAdmin):
         (_('Notas'), {'fields': ('notas',)}),
         (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )
+    ordering = ('-fecha', '-numero')
+    autocomplete_fields = [
+        'cliente', 'reparacion', 'venta_relacionada', 'tipo_iva',
+        'direccion_facturacion', 'direccion_envio'
+    ]
 
     def reparacion_numero(self, obj):
         """Muestra el número de la reparación asociada."""
@@ -144,6 +153,7 @@ class DetalleVentaAdmin(admin.ModelAdmin):
         (_('Totales'), {'fields': ('subtotal', 'iva', 'total')}),
         (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )
+    autocomplete_fields = ['venta', 'producto', 'tipo_iva']
 
 @admin.register(Pago)
 class PagoAdmin(admin.ModelAdmin):
@@ -166,6 +176,7 @@ class PagoAdmin(admin.ModelAdmin):
         (_('Notas'), {'fields': ('notas',)}),
         (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )
+    autocomplete_fields = ['venta']
 
 @admin.register(Envio)
 class EnvioAdmin(admin.ModelAdmin):
@@ -181,6 +192,7 @@ class EnvioAdmin(admin.ModelAdmin):
         (_('Notas'), {'fields': ('notas',)}),
         (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )
+    autocomplete_fields = ['venta']
 
     def marcar_como_entregado(self, request, queryset):
         """Marca los envíos seleccionados como entregados."""
@@ -221,6 +233,9 @@ class NotaCreditoAdmin(admin.ModelAdmin):
         (_('Detalles'), {'fields': ('motivo', 'subtotal', 'tipo_iva', 'iva', 'total')}),
         (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )
+    autocomplete_fields = ['nota_credito', 'producto', 'tipo_iva']
+    ordering = ('-fecha', '-numero')
+    autocomplete_fields = ['venta', 'cliente', 'tipo_iva']
 
     def emitir_nota_credito(self, request, queryset):
         """Emite las notas de crédito seleccionadas."""

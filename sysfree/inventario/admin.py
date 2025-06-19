@@ -156,7 +156,7 @@ class AlmacenAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'direccion', 'responsable', 'activo')
     list_filter = ('activo',)
     search_fields = ('nombre', 'direccion', 'responsable')
-    autocomplete_fields = ['responsable']
+    autocomplete_fields = ['sucursal']
     list_editable = ('responsable',)
     readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
     fieldsets = (

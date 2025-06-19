@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 from .models import (
     PeriodoFiscal, CuentaContable, AsientoContable, LineaAsiento, Comprobante,
-    Impuesto, Retencion, ComprobanteRetencion
+    Retencion, ComprobanteRetencion
 )
 
 class LineaAsientoInline(admin.TabularInline):
@@ -81,18 +81,6 @@ class ComprobanteAdmin(admin.ModelAdmin):
         (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )
 
-@admin.register(Impuesto)
-class ImpuestoAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'codigo', 'porcentaje', 'tipo', 'activo')
-    list_filter = ('tipo', 'activo')
-    search_fields = ('nombre', 'codigo')
-    readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
-    ordering = ('nombre',)
-    fieldsets = (
-        (None, {'fields': ('nombre', 'codigo', 'descripcion', 'porcentaje', 'tipo')}),
-        (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
-    )
-
 @admin.register(Retencion)
 class RetencionAdmin(admin.ModelAdmin):
     list_display = ('descripcion', 'codigo', 'porcentaje', 'tipo', 'activo')
@@ -107,14 +95,14 @@ class RetencionAdmin(admin.ModelAdmin):
 
 @admin.register(ComprobanteRetencion)
 class ComprobanteRetencionAdmin(admin.ModelAdmin):
-    list_display = ('numero', 'proveedor', 'fecha_emision', 'total_retenido', 'autorizacion')
-    list_filter = ('proveedor',)
-    search_fields = ('numero', 'proveedor__nombre', 'autorizacion')
+    list_display = ('numero', 'venta', 'fecha_emision', 'total_retenido')
+    list_filter = ('fecha_emision',)
+    search_fields = ('numero', 'venta__numero')
     readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por', 'total_retenido')
     date_hierarchy = 'fecha_emision'
     ordering = ('-fecha_emision',)
-    autocomplete_fields = ['proveedor', 'comprobante_origen']
+    autocomplete_fields = ['venta']
     fieldsets = (
-        (None, {'fields': ('numero', 'proveedor', 'fecha_emision', 'autorizacion', 'comprobante_origen')}),
+        (None, {'fields': ('numero', 'venta', 'fecha_emision', 'base_imponible', 'total_retenido')}),
         (_('Auditoría'), {'fields': ('activo', 'creado_por', 'fecha_creacion', 'modificado_por', 'fecha_modificacion')}),
     )
