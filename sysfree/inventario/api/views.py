@@ -38,19 +38,24 @@ class ProductoViewSet(viewsets.ModelViewSet):
     def registrar_entrada(self, request, pk=None):
         producto = self.get_object()
         cantidad = request.data.get('cantidad')
-        almacen_id = request.data.get('almacen_id')
+        almacen_id = request.data.get('almacen') or request.data.get('almacen_id')
+        costo_unitario = request.data.get('costo_unitario')
         origen = request.data.get('origen', 'manual')
         notas = request.data.get('notas', '')
         
         try:
+            from inventario.models import Almacen
+            almacen = Almacen.objects.get(id=almacen_id) if almacen_id else None
             cantidad = float(cantidad)
+            costo_unitario = float(costo_unitario) if costo_unitario else None
             movimiento = InventarioService.registrar_entrada(
                 producto=producto,
                 cantidad=cantidad,
                 origen=origen,
+                costo_unitario=costo_unitario,
                 notas=notas,
                 usuario=request.user,
-                almacen_id=almacen_id
+                almacen=almacen
             )
             
             serializer = MovimientoInventarioSerializer(movimiento)
@@ -62,11 +67,13 @@ class ProductoViewSet(viewsets.ModelViewSet):
     def registrar_salida(self, request, pk=None):
         producto = self.get_object()
         cantidad = request.data.get('cantidad')
-        almacen_id = request.data.get('almacen_id')
+        almacen_id = request.data.get('almacen') or request.data.get('almacen_id')
         origen = request.data.get('origen', 'manual')
         notas = request.data.get('notas', '')
         
         try:
+            from inventario.models import Almacen
+            almacen = Almacen.objects.get(id=almacen_id) if almacen_id else None
             cantidad = float(cantidad)
             movimiento = InventarioService.registrar_salida(
                 producto=producto,
@@ -74,7 +81,7 @@ class ProductoViewSet(viewsets.ModelViewSet):
                 origen=origen,
                 notas=notas,
                 usuario=request.user,
-                almacen_id=almacen_id
+                almacen=almacen
             )
             
             serializer = MovimientoInventarioSerializer(movimiento)
