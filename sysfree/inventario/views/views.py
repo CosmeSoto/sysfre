@@ -3,12 +3,15 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator # Para Class-Based Views si las usaras
 from inventario.models import Categoria, Producto, Proveedor, MovimientoInventario
 from inventario.forms import CategoriaForm, ProductoForm, ProveedorForm, MovimientoEntradaForm, MovimientoSalidaForm
 from inventario.services.inventario_service import InventarioService
 
 
 @login_required
+@cache_page(60 * 15) # Cachear por 15 minutos
 def producto_list(request):
     """Vista para listar productos."""
     search_query = request.GET.get('search', '')
@@ -54,6 +57,7 @@ def producto_list(request):
 
 
 @login_required
+@cache_page(60 * 60) # Cachear por 1 hora, los detalles de un producto cambian menos
 def producto_detail(request, pk):
     """Vista para ver detalles de un producto."""
     producto = get_object_or_404(Producto, pk=pk)
@@ -203,6 +207,7 @@ def salida_inventario(request, pk):
 
 
 @login_required
+@cache_page(60 * 30) # Cachear por 30 minutos
 def categoria_list(request):
     """Vista para listar categorías."""
     categorias = Categoria.objects.filter(activo=True).order_by('nombre')
@@ -263,6 +268,7 @@ def categoria_update(request, pk):
 
 
 @login_required
+@cache_page(60 * 15) # Cachear por 15 minutos
 def proveedor_list(request):
     """Vista para listar proveedores."""
     search_query = request.GET.get('search', '')
@@ -287,6 +293,7 @@ def proveedor_list(request):
 
 
 @login_required
+@cache_page(60 * 60) # Cachear por 1 hora
 def proveedor_detail(request, pk):
     """Vista para ver detalles de un proveedor."""
     proveedor = get_object_or_404(Proveedor, pk=pk)
@@ -347,6 +354,7 @@ def proveedor_update(request, pk):
 
 
 @login_required
+@cache_page(60 * 5) # Cachear por 5 minutos, los movimientos pueden ser más dinámicos
 def movimiento_list(request):
     """Vista para listar movimientos de inventario."""
     tipo = request.GET.get('tipo', '')
