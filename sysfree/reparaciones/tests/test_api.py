@@ -130,7 +130,7 @@ class ReparacionesAPITests(TestCase):
         """Prueba actualizar una reparación."""
         self.client.force_authenticate(user=self.admin_user)
         data = {
-            'estado': 'diagnosticado',
+            'estado': 'diagnostico',
             'diagnostico': 'Diagnóstico de prueba'
         }
         response = self.client.patch(
@@ -139,7 +139,7 @@ class ReparacionesAPITests(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.reparacion.refresh_from_db()
-        self.assertEqual(self.reparacion.estado, 'diagnosticado')
+        self.assertEqual(self.reparacion.estado, 'diagnostico')
         self.assertEqual(self.reparacion.diagnostico, 'Diagnóstico de prueba')
     
     def test_agregar_servicio(self):
@@ -176,7 +176,7 @@ class ReparacionesAPITests(TestCase):
         """Prueba cambiar el estado de una reparación."""
         self.client.force_authenticate(user=self.admin_user)
         data = {
-            'estado': 'reparado',
+            'estado': 'finalizado',
             'notas': 'Reparación completada'
         }
         response = self.client.post(
@@ -185,7 +185,7 @@ class ReparacionesAPITests(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.reparacion.refresh_from_db()
-        self.assertEqual(self.reparacion.estado, 'reparado')
+        self.assertEqual(self.reparacion.estado, 'finalizado')
     
     def test_get_servicios(self):
         """Prueba obtener la lista de servicios de reparación."""

@@ -11,6 +11,7 @@ from inventario.api.views import ProductoViewSet, CategoriaViewSet
 from clientes.api.views import ClienteViewSet
 from ventas.api.views import VentaViewSet
 from reparaciones.api.views import ReparacionViewSet
+from reparaciones.api.urls import ServicioReparacionViewSet
 from ecommerce.api.views import PedidoViewSet
 
 app_name = 'api'
@@ -36,6 +37,7 @@ router.register(r'categorias', CategoriaViewSet, basename='categoria')
 router.register(r'clientes', ClienteViewSet, basename='cliente')
 router.register(r'ventas', VentaViewSet, basename='venta')
 router.register(r'reparaciones', ReparacionViewSet, basename='reparacion')
+router.register(r'servicios-reparacion', ServicioReparacionViewSet, basename='servicioreparacion')
 router.register(r'pedidos', PedidoViewSet, basename='pedido')
 
 urlpatterns = [

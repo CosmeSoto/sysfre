@@ -19,7 +19,7 @@ router = DefaultRouter()
 # ReparacionViewSet is registered in the main api/urls.py
 router.register(r'seguimientos', SeguimientoReparacionViewSet)
 router.register(r'repuestos', RepuestoReparacionViewSet)
-router.register(r'servicios', ServicioReparacionViewSet, basename='servicioreparacion')
+# ServicioReparacionViewSet is registered in the main api/urls.py
 
 urlpatterns = [
     path('', include(router.urls)),

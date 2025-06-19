@@ -35,7 +35,7 @@ class ReparacionSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'numero', 'cliente', 'cliente_nombre', 'fecha_recepcion',
             'fecha_estimada_entrega', 'fecha_entrega', 'tipo_equipo', 'marca',
-            'modelo', 'problema_reportado', 'estado', 'prioridad',
+            'modelo', 'problema_reportado', 'diagnostico', 'estado', 'prioridad',
             'tecnico', 'tecnico_nombre', 'costo_diagnostico', 'costo_reparacion',
             'costo_repuestos', 'total', 'facturado', 'factura', 'seguimientos',
             'repuestos'

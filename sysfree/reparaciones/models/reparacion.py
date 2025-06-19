@@ -35,6 +35,7 @@ class Reparacion(ModeloBase):
     marca = models.CharField(_('marca'), max_length=50)
     modelo = models.CharField(_('modelo'), max_length=50, blank=True)
     problema_reportado = models.TextField(_('problema reportado'))
+    diagnostico = models.TextField(_('diagnóstico'), blank=True)
     estado = models.CharField(_('estado'), max_length=20, choices=ESTADO_CHOICES, default='recibido')
     prioridad = models.CharField(_('prioridad'), max_length=10, choices=PRIORIDAD_CHOICES, default='media')
     tecnico = models.ForeignKey(

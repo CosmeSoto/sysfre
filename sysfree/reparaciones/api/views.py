@@ -107,9 +107,7 @@ class ReparacionViewSet(viewsets.ModelViewSet):
                 notas=notas
             )
             
-            # Actualizar el costo de reparación
-            reparacion.costo_reparacion += detalle.precio
-            reparacion.save()
+            # El modelo DetalleServicio ya actualiza automáticamente el costo_reparacion
             
             return Response({'status': 'servicio agregado'}, status=status.HTTP_201_CREATED)
         except Exception as e:
