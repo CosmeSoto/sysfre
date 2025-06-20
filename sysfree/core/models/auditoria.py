@@ -63,6 +63,8 @@ class LogActividad(models.Model):
     modelo = models.CharField(_('modelo'), max_length=100, blank=True)
     objeto_id = models.CharField(_('ID del objeto'), max_length=50, blank=True)
     datos = models.JSONField(_('datos adicionales'), null=True, blank=True)
+    datos_anteriores = models.JSONField(_('datos anteriores'), null=True, blank=True, help_text=_('Estado del objeto antes de la modificación, si aplica.'))
+    user_agent = models.CharField(_('user agent'), max_length=255, blank=True, null=True, help_text=_('Información del cliente/navegador del usuario.'))
     
     class Meta:
         verbose_name = _('log de actividad')

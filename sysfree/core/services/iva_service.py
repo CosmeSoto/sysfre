@@ -3,17 +3,15 @@ Servicio para gestionar los tipos de IVA en toda la aplicación.
 Este servicio proporciona métodos para acceder a los tipos de IVA
 sin necesidad de configuraciones en settings.
 """
-from django.core.cache import cache
 from django.db.models import Q
 from ..models.tipo_iva import TipoIVA
+from .cache_service import CacheService
 
 
 class IVAService:
     """Servicio para gestionar los tipos de IVA en toda la aplicación."""
     
-    CACHE_KEY_DEFAULT = 'tipo_iva_default'
-    CACHE_KEY_ALL = 'tipos_iva_all'
-    CACHE_TIMEOUT = 3600  # 1 hora
+    CACHE_TIMEOUT = 7200  # 2 horas
     
     @classmethod
     def get_default(cls):
@@ -24,18 +22,16 @@ class IVAService:
             TipoIVA: El tipo de IVA predeterminado o None si no existe.
         """
         # Intentar obtener del cache primero
-        iva_default = cache.get(cls.CACHE_KEY_DEFAULT)
+        iva_default = CacheService.get_iva('default')
         
         if iva_default is None:
             try:
                 iva_default = TipoIVA.objects.filter(es_default=True).first()
                 if iva_default is None:
-                    # Si no hay un IVA predeterminado, intentar obtener cualquier IVA
                     iva_default = TipoIVA.objects.first()
                 
-                # Guardar en cache si existe
                 if iva_default:
-                    cache.set(cls.CACHE_KEY_DEFAULT, iva_default, cls.CACHE_TIMEOUT)
+                    CacheService.set_iva('default', iva_default, cls.CACHE_TIMEOUT)
             except Exception:
                 return None
                 
@@ -98,15 +94,14 @@ class IVAService:
             QuerySet: QuerySet con todos los tipos de IVA.
         """
         # Intentar obtener del cache primero
-        tipos_iva = cache.get(cls.CACHE_KEY_ALL)
+        tipos_iva = CacheService.get_iva('all')
         
         if tipos_iva is None:
             try:
-                tipos_iva = TipoIVA.objects.all()
-                # Guardar en cache
-                cache.set(cls.CACHE_KEY_ALL, tipos_iva, cls.CACHE_TIMEOUT)
+                tipos_iva = list(TipoIVA.objects.all())
+                CacheService.set_iva('all', tipos_iva, cls.CACHE_TIMEOUT)
             except Exception:
-                return TipoIVA.objects.none()
+                return []
                 
         return tipos_iva
     
@@ -137,5 +132,4 @@ class IVAService:
     @classmethod
     def invalidar_cache(cls):
         """Invalida la caché de tipos de IVA."""
-        cache.delete(cls.CACHE_KEY_DEFAULT)
-        cache.delete(cls.CACHE_KEY_ALL)
+        CacheService.invalidate_iva()

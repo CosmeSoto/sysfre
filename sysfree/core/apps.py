@@ -8,3 +8,4 @@ class CoreConfig(AppConfig):
 
     def ready(self):
         import core.signals  # Importamos las señales al iniciar la aplicación
+        import core.mixins.auditoria_mixins  # Importamos las señales de auditoría de autenticación

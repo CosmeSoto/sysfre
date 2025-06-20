@@ -7,7 +7,8 @@ class LogService:
     
     @classmethod
     def registrar_actividad(cls, accion, descripcion, nivel='info', tipo='sistema', 
-                           modelo=None, objeto_id=None, datos=None, ip=None, usuario=None):
+                           modelo=None, objeto_id=None, datos=None, ip=None, usuario=None,
+                           datos_anteriores=None, user_agent=None):
         """
         Registra una actividad en el sistema.
         
@@ -21,6 +22,8 @@ class LogService:
             datos (dict): Datos adicionales
             ip (str): Dirección IP del usuario
             usuario (Usuario): Usuario que realizó la acción
+            datos_anteriores (dict): Datos del objeto antes de la modificación
+            user_agent (str): User agent del cliente
         
         Returns:
             LogActividad: Instancia del log creado
@@ -37,7 +40,9 @@ class LogService:
             modelo=modelo or '',
             objeto_id=str(objeto_id) if objeto_id else '',
             datos=datos,
-            ip=ip
+            ip=ip,
+            datos_anteriores=datos_anteriores,
+            user_agent=user_agent
         )
         
         return log

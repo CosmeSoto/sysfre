@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
+from django.utils.html import format_html
 from .models import ConfiguracionSistema, Empresa, Sucursal, LogActividad, Usuario, TipoIVA
 
 
@@ -87,25 +88,40 @@ class SucursalAdmin(admin.ModelAdmin):
 
 @admin.register(LogActividad)
 class LogActividadAdmin(admin.ModelAdmin):
-    list_display = ('fecha', 'usuario', 'nivel', 'tipo', 'accion', 'modelo')
-    list_filter = ('nivel', 'tipo', 'usuario')
-    search_fields = ('accion', 'descripcion', 'modelo', 'objeto_id')
+    list_display = ('fecha', 'usuario', 'nivel', 'tipo', 'accion', 'modelo', 'get_ip_short')
+    list_filter = ('nivel', 'tipo', 'fecha', 'usuario')
+    search_fields = ('accion', 'descripcion', 'modelo', 'objeto_id', 'ip')
+    date_hierarchy = 'fecha'
+    ordering = ('-fecha',)
+    list_per_page = 50
+    
     fieldsets = (
-        (None, {
-            'fields': ('usuario', 'fecha', 'ip', 'nivel', 'tipo', 'accion', 'descripcion', 'modelo', 'objeto_id', 'datos')
+        (_('Información Principal'), {
+            'fields': ('usuario', 'fecha', 'accion', 'descripcion')
+        }),
+        (_('Contexto'), {
+            'fields': ('nivel', 'tipo', 'modelo', 'objeto_id', 'ip', 'user_agent')
+        }),
+        (_('Datos'), {
+            'classes': ('collapse',),
+            'fields': ('datos', 'datos_anteriores')
         }),
     )
-    readonly_fields = ('fecha', 'ip', 'usuario', 'nivel', 'tipo', 'accion', 'descripcion', 'modelo', 'objeto_id', 'datos')
-    date_hierarchy = 'fecha'
-
+    readonly_fields = ('fecha', 'ip', 'user_agent', 'usuario', 'nivel', 'tipo', 'accion', 
+                      'descripcion', 'modelo', 'objeto_id', 'datos', 'datos_anteriores')
+    
+    def get_ip_short(self, obj):
+        return obj.ip[:15] + '...' if obj.ip and len(obj.ip) > 15 else obj.ip or '-'
+    get_ip_short.short_description = 'IP'
+    
     def has_add_permission(self, request):
-        return False  # No permitir agregar logs manualmente
-
+        return False
+    
     def has_change_permission(self, request, obj=None):
-        return False  # No permitir editar logs
-
+        return False
+    
     def has_delete_permission(self, request, obj=None):
-        return False  # No permitir eliminar logs
+        return request.user.is_superuser  # Solo superusuarios pueden eliminar logs
 
 
 @admin.register(Usuario)

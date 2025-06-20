@@ -1,9 +1,52 @@
 from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
-from .models import ModeloBase, TipoIVA
-from .middleware import get_usuario_actual
+from .models import ModeloBase, TipoIVA, Empresa, Sucursal, ConfiguracionSistema, Usuario
+from .middleware import get_usuario_actual, get_request_actual
+from .services.log_service import LogService
 from .services import IVAService
+from .constants import TiposActividad, MensajesAuditoria
+
+# Modelos que serán auditados automáticamente
+AUDITED_MODELS = [TipoIVA, Empresa, Sucursal, ConfiguracionSistema, Usuario]
+
+
+def get_client_info(request):
+    """Extrae IP y User-Agent del request."""
+    if not request:
+        return None, None
+    
+    ip = request.META.get('REMOTE_ADDR')
+    user_agent = request.META.get('HTTP_USER_AGENT', '')
+    return ip, user_agent
+
+
+def serialize_instance(instance, fields=None):
+    """Serializa una instancia de modelo a un diccionario."""
+    excluded_fields = {'creado_por', 'modificado_por', 'fecha_creacion', 'fecha_modificacion', 'activo'}
+    
+    opts = instance._meta
+    data = {}
+    for f in opts.concrete_fields:
+        if f.name in excluded_fields:
+            continue
+        if fields and f.name not in fields:
+            continue
+        
+        value = getattr(instance, f.name)
+        
+        # Manejar diferentes tipos de campos
+        if f.many_to_one and value is not None:
+            value = value.pk
+        elif hasattr(f, 'upload_to'):  # FileField/ImageField
+            value = str(value) if value else None
+        elif hasattr(value, 'isoformat'):  # DateField/DateTimeField
+            value = value.isoformat()
+        elif not isinstance(value, (str, int, float, bool, type(None))):
+            value = str(value)
+            
+        data[f.name] = value
+    return data
 
 
 @receiver(pre_save)
@@ -26,17 +69,72 @@ def pre_save_modelo_base(sender, instance, **kwargs):
         instance.modificado_por = usuario_actual
 
 
-@receiver(post_save, sender='core.Usuario')
-def actualizar_ultimo_login(sender, instance, **kwargs):
-    """
-    Signal para actualizar el campo ultimo_login cuando el usuario inicia sesión.
-    """
-    from django.contrib.auth.signals import user_logged_in
+@receiver(pre_save)
+def auditar_cambios_pre_save(sender, instance, **kwargs):
+    """Antes de guardar, captura el estado anterior del objeto."""
+    if sender in AUDITED_MODELS and instance.pk:
+        try:
+            old_instance = sender.objects.get(pk=instance.pk)
+            instance._old_state = serialize_instance(old_instance)
+        except sender.DoesNotExist:
+            instance._old_state = None
+
+
+@receiver(post_save)
+def auditar_cambios_post_save(sender, instance, created, **kwargs):
+    """Después de guardar, registra la creación o actualización."""
+    if sender not in AUDITED_MODELS:
+        return
+
+    usuario_actual = get_usuario_actual()
+    request_actual = get_request_actual()
+    ip, user_agent = get_client_info(request_actual)
     
-    @receiver(user_logged_in)
-    def set_ultimo_login(sender, user, request, **kwargs):
-        user.ultimo_login = timezone.now()
-        user.save(update_fields=['ultimo_login'])
+    modelo_nombre = sender._meta.verbose_name.title()
+    datos_actuales = serialize_instance(instance)
+
+    if created:
+        accion = f"CREACION_{sender.__name__.upper()}"
+        descripcion = MensajesAuditoria.creacion(modelo_nombre, str(instance), usuario_actual)
+        LogService.registrar_actividad(
+            accion=accion, descripcion=descripcion, usuario=usuario_actual,
+            modelo=sender.__name__, objeto_id=instance.pk, datos=datos_actuales,
+            ip=ip, user_agent=user_agent, tipo=TiposActividad.NEGOCIO
+        )
+    else:
+        datos_anteriores = getattr(instance, '_old_state', None)
+        if datos_anteriores != datos_actuales:
+            accion = f"ACTUALIZACION_{sender.__name__.upper()}"
+            descripcion = MensajesAuditoria.actualizacion(modelo_nombre, str(instance), usuario_actual)
+            LogService.registrar_actividad(
+                accion=accion, descripcion=descripcion, usuario=usuario_actual,
+                modelo=sender.__name__, objeto_id=instance.pk, datos=datos_actuales,
+                datos_anteriores=datos_anteriores, ip=ip, user_agent=user_agent, tipo=TiposActividad.NEGOCIO
+            )
+
+
+@receiver(post_delete)
+def auditar_eliminaciones(sender, instance, **kwargs):
+    """Después de eliminar, registra la eliminación."""
+    if sender not in AUDITED_MODELS:
+        return
+
+    usuario_actual = get_usuario_actual()
+    request_actual = get_request_actual()
+    ip, user_agent = get_client_info(request_actual)
+    modelo_nombre = sender._meta.verbose_name.title()
+    datos_eliminados = serialize_instance(instance)
+
+    accion = f"ELIMINACION_{sender.__name__.upper()}"
+    descripcion = MensajesAuditoria.eliminacion(modelo_nombre, str(instance), usuario_actual)
+    LogService.registrar_actividad(
+        accion=accion, descripcion=descripcion, usuario=usuario_actual,
+        modelo=sender.__name__, objeto_id=instance.pk, datos_anteriores=datos_eliminados,
+        ip=ip, user_agent=user_agent, tipo=TiposActividad.NEGOCIO
+    )
+
+
+# Las señales de autenticación están en mixins/auditoria_mixins.py
 
 
 @receiver(post_save, sender=TipoIVA)

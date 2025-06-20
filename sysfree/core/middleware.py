@@ -4,7 +4,7 @@ from django.contrib.auth import logout
 from django.shortcuts import redirect
 import logging
 
-_usuario_actual = local()
+_thread_locals = local()
 logger = logging.getLogger('sysfree')
 
 
@@ -18,8 +18,18 @@ class UsuarioActualMiddleware:
         self.get_response = get_response
     
     def __call__(self, request):
-        _usuario_actual.user = request.user
+        # Guardar el usuario actual y el request en el thread local
+        _thread_locals.usuario = request.user if hasattr(request, 'user') and request.user.is_authenticated else None
+        _thread_locals.request = request
+        
         response = self.get_response(request)
+        
+        # Limpiar después de la respuesta para evitar fugas de datos entre requests
+        if hasattr(_thread_locals, 'usuario'):
+            del _thread_locals.usuario
+        if hasattr(_thread_locals, 'request'):
+            del _thread_locals.request
+            
         return response
 
 
@@ -28,10 +38,14 @@ def get_usuario_actual():
     Retorna el usuario actual almacenado en el thread local.
     Si no hay usuario autenticado, retorna None.
     """
-    try:
-        return _usuario_actual.user
-    except AttributeError:
-        return None
+    return getattr(_thread_locals, 'usuario', None)
+
+
+def get_request_actual():
+    """
+    Obtiene el objeto request actual del thread local.
+    """
+    return getattr(_thread_locals, 'request', None)
 
 
 class SessionControlMiddleware:
