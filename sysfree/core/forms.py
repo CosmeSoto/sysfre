@@ -34,17 +34,10 @@ class ConfiguracionSistemaForm(forms.ModelForm):
     """Formulario para configuraciones del sistema."""
     class Meta:
         model = ConfiguracionSistema
-        fields = ['NOMBRE_EMPRESA', 'RUC', 'DIRECCION', 'TELEFONO', 'EMAIL', 'SITIO_WEB',
-                 'PREFIJO_FACTURA', 'PREFIJO_PROFORMA', 'PREFIJO_NOTA_VENTA', 'PREFIJO_TICKET',
+        fields = ['PREFIJO_FACTURA', 'PREFIJO_PROFORMA', 'PREFIJO_NOTA_VENTA', 'PREFIJO_TICKET',
                  'INICIO_FACTURA', 'INICIO_PROFORMA', 'INICIO_NOTA_VENTA', 'INICIO_TICKET',
                  'tipo_iva_default']
         widgets = {
-            'NOMBRE_EMPRESA': forms.TextInput(attrs={'class': 'form-control'}),
-            'RUC': forms.TextInput(attrs={'class': 'form-control'}),
-            'DIRECCION': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'TELEFONO': forms.TextInput(attrs={'class': 'form-control'}),
-            'EMAIL': forms.EmailInput(attrs={'class': 'form-control'}),
-            'SITIO_WEB': forms.URLInput(attrs={'class': 'form-control'}),
             'PREFIJO_FACTURA': forms.TextInput(attrs={'class': 'form-control'}),
             'PREFIJO_PROFORMA': forms.TextInput(attrs={'class': 'form-control'}),
             'PREFIJO_NOTA_VENTA': forms.TextInput(attrs={'class': 'form-control'}),
@@ -61,15 +54,24 @@ class EmpresaForm(forms.ModelForm):
     """Formulario para datos de la empresa."""
     class Meta:
         model = Empresa
-        fields = ['nombre', 'ruc', 'direccion', 'telefono', 'email', 'sitio_web', 'logo']
+        fields = ['nombre', 'nombre_comercial', 'ruc', 'direccion', 'telefono', 'email', 
+                 'sitio_web', 'logo', 'regimen_fiscal', 'representante_legal', 'cedula_representante',
+                 'ambiente_facturacion', 'ruta_certificado', 'clave_certificado']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'nombre_comercial': forms.TextInput(attrs={'class': 'form-control'}),
             'ruc': forms.TextInput(attrs={'class': 'form-control'}),
-            'direccion': forms.TextInput(attrs={'class': 'form-control'}),
+            'direccion': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'telefono': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'sitio_web': forms.URLInput(attrs={'class': 'form-control'}),
             'logo': forms.FileInput(attrs={'class': 'form-control'}),
+            'regimen_fiscal': forms.TextInput(attrs={'class': 'form-control'}),
+            'representante_legal': forms.TextInput(attrs={'class': 'form-control'}),
+            'cedula_representante': forms.TextInput(attrs={'class': 'form-control'}),
+            'ambiente_facturacion': forms.Select(attrs={'class': 'form-control'}),
+            'ruta_certificado': forms.TextInput(attrs={'class': 'form-control'}),
+            'clave_certificado': forms.PasswordInput(attrs={'class': 'form-control'}),
         }
 
 

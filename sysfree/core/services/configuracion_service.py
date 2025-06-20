@@ -4,6 +4,7 @@ Servicio para gestionar la configuración del sistema.
 from django.core.cache import cache
 from ..models import ConfiguracionSistema
 from .iva_service import IVAService
+from .empresa_service import EmpresaService
 
 
 class ConfiguracionService:
@@ -68,6 +69,17 @@ class ConfiguracionService:
         return 12.00
     
     @classmethod
+    def get_nombre_empresa(cls):
+        """Obtiene el nombre de la empresa (delegado a EmpresaService)."""
+        return EmpresaService.get_nombre_empresa()
+    
+    @classmethod
+    def get_ruc_empresa(cls):
+        """Obtiene el RUC de la empresa (delegado a EmpresaService)."""
+        return EmpresaService.get_ruc_empresa()
+    
+    @classmethod
     def invalidar_cache(cls):
         """Invalida la caché de configuración del sistema."""
         cache.delete(cls.CACHE_KEY)
+        EmpresaService.invalidar_cache()

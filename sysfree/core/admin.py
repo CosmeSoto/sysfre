@@ -5,9 +5,8 @@ from .models import ConfiguracionSistema, Empresa, Sucursal, LogActividad, Usuar
 
 @admin.register(ConfiguracionSistema)
 class ConfiguracionSistemaAdmin(admin.ModelAdmin):
-    list_display = ('NOMBRE_EMPRESA', 'RUC', 'get_iva_porcentaje', 'activo')
-    list_filter = ('activo', 'AMBIENTE_FACTURACION')
-    search_fields = ('NOMBRE_EMPRESA', 'RUC')
+    list_display = ('__str__', 'get_iva_porcentaje', 'activo')
+    list_filter = ('activo',)
     
     def get_iva_porcentaje(self, obj):
         if obj.tipo_iva_default:
@@ -15,9 +14,6 @@ class ConfiguracionSistemaAdmin(admin.ModelAdmin):
         return "-"
     get_iva_porcentaje.short_description = _('IVA')
     fieldsets = (
-        (None, {
-            'fields': ('NOMBRE_EMPRESA', 'RUC', 'DIRECCION', 'TELEFONO', 'EMAIL', 'SITIO_WEB')
-        }),
         (_('Numeración de Documentos'), {
             'fields': (
                 'PREFIJO_FACTURA', 'INICIO_FACTURA',
@@ -28,9 +24,6 @@ class ConfiguracionSistemaAdmin(admin.ModelAdmin):
         }),
         (_('Impuestos'), {
             'fields': ('tipo_iva_default',)
-        }),
-        (_('Facturación Electrónica'), {
-            'fields': ('AMBIENTE_FACTURACION', 'CLAVE_CERTIFICADO', 'RUTA_CERTIFICADO')
         }),
         (_('Auditoría'), {
             'fields': ('activo', 'creado_por', 'modificado_por', 'fecha_creacion', 'fecha_modificacion')

@@ -65,8 +65,8 @@ python manage.py runserver
 
 # Borrar migraciones
 
-find . -path "_/migrations/_.py" -not -name "**init**.py" -delete
-find . -path "_/migrations/_.pyc" -delete
+find . -path "*/migrations/*.py" -not -name "__init__.py" -delete
+find . -path "*/migrations/*.pyc"  -delete
 
 find . -name "**pycache**" -type d -exec rm -rf {} +
 

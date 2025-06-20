@@ -18,17 +18,13 @@ def dashboard_view(request):
     logger.info(f"Usuario {request.user.email} accedió al dashboard")
     log_security_event('acceso_dashboard', user=request.user.email)
 
-    # Obtener configuraciones del sistema
-    configuracion = ConfiguracionService.get_configuracion()
-    sistema_nombre = configuracion.NOMBRE_EMPRESA if configuracion else 'SysFree'
-    sistema_version = '1.0.0'  # Valor fijo, ya que VERSION no existe
-
     # Obtener el nombre del usuario para un mensaje personalizado
     nombre_usuario = request.user.nombres or request.user.email.split('@')[0]
 
-    # Obtener el nombre de la empresa
+    # Obtener información de la empresa
     empresa = Empresa.objects.first()
-    nombre_empresa = empresa.nombre if empresa else 'Sin empresa'
+    sistema_nombre = empresa.nombre if empresa else 'SysFree'
+    sistema_version = '1.0.0'  # Valor fijo
 
     # Obtener el total de sucursales
     total_sucursales = Sucursal.objects.count()
@@ -39,7 +35,7 @@ def dashboard_view(request):
         'sistema_nombre': sistema_nombre,
         'sistema_version': sistema_version,
         'mensaje_bienvenida': f'¡Bienvenido, {nombre_usuario}!',
-        'nombre_empresa': nombre_empresa,
+        'empresa': empresa,
         'total_sucursales': total_sucursales,
     }
     
