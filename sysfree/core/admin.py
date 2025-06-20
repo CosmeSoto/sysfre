@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html
 from .models import ConfiguracionSistema, Empresa, Sucursal, LogActividad, Usuario, TipoIVA
@@ -125,13 +126,15 @@ class LogActividadAdmin(admin.ModelAdmin):
 
 
 @admin.register(Usuario)
-class UsuarioAdmin(admin.ModelAdmin):
-    list_display = ('email', 'nombres', 'apellidos', 'is_active', 'is_staff')
-    list_filter = ('is_active', 'is_staff')
+class UsuarioAdmin(BaseUserAdmin):
+    list_display = ('email', 'nombres', 'apellidos', 'is_active', 'is_staff', 'is_superuser')
+    list_filter = ('is_active', 'is_staff', 'is_superuser')
     search_fields = ('email', 'nombres', 'apellidos')
+    ordering = ('email',)
+    
     fieldsets = (
         (None, {
-            'fields': ('email', 'password', 'nombres', 'apellidos', 'telefono', 'foto', 'fecha_nacimiento')
+            'fields': ('email', 'nombres', 'apellidos', 'telefono', 'foto', 'fecha_nacimiento')
         }),
         (_('Permisos'), {
             'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')
@@ -140,6 +143,14 @@ class UsuarioAdmin(admin.ModelAdmin):
             'fields': ('fecha_creacion', 'fecha_modificacion', 'ultimo_login')
         }),
     )
+    
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('email', 'nombres', 'apellidos', 'password1', 'password2', 'is_staff', 'is_active'),
+        }),
+    )
+    
     readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'ultimo_login')
 
 

@@ -22,8 +22,13 @@ def get_client_info(request):
 
 
 def serialize_instance(instance, fields=None):
-    """Serializa una instancia de modelo a un diccionario."""
-    excluded_fields = {'creado_por', 'modificado_por', 'fecha_creacion', 'fecha_modificacion', 'activo'}
+    """Serializa una instancia de modelo a un diccionario excluyendo campos sensibles."""
+    # Campos excluidos por seguridad y auditoría
+    excluded_fields = {
+        'creado_por', 'modificado_por', 'fecha_creacion', 'fecha_modificacion', 'activo',
+        'password', 'last_login', 'user_permissions', 'groups',  # Campos sensibles de Usuario
+        'clave_certificado', 'url_recepcion_pruebas', 'url_autorizacion_pruebas',  # Datos fiscales sensibles
+    }
     
     opts = instance._meta
     data = {}
@@ -46,6 +51,12 @@ def serialize_instance(instance, fields=None):
             value = str(value)
             
         data[f.name] = value
+    
+    # Para Usuario, solo incluir campos seguros
+    if instance._meta.model_name == 'usuario':
+        safe_fields = {'email', 'nombres', 'apellidos', 'telefono', 'is_active', 'is_staff', 'fecha_nacimiento'}
+        data = {k: v for k, v in data.items() if k in safe_fields}
+    
     return data
 
 

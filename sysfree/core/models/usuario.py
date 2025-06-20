@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 
@@ -10,6 +12,7 @@ class UsuarioManager(BaseUserManager):
         """Crea y guarda un usuario con el email y contraseña dados."""
         if not email:
             raise ValueError(_('El email es obligatorio'))
+        
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
@@ -68,6 +71,16 @@ class Usuario(AbstractUser):
     def get_short_name(self):
         """Retorna el nombre corto del usuario."""
         return self.nombres
+    
+    def clean(self):
+        super().clean()
+        # Validar que el email sea único
+        if Usuario.objects.filter(email=self.email).exclude(pk=self.pk).exists():
+            raise ValidationError({'email': _('Ya existe un usuario con este email.')})
+    
+    def set_password(self, raw_password):
+        """Establece la contraseña."""
+        super().set_password(raw_password)
     
     def __str__(self):
         return self.email
