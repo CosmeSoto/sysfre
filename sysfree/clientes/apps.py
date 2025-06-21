@@ -8,4 +8,4 @@ class ClientesConfig(AppConfig):
     verbose_name = _('Clientes')
 
     def ready(self):
-        import clientes.signals  # Importamos las señales al iniciar la aplicación
+        pass  # Las señales de auditoría están en core.signals

@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.core.exceptions import ValidationError
 from core.models import ModeloBase
 from .cliente import Cliente
 
@@ -44,13 +45,40 @@ class DireccionCliente(ModeloBase):
             return f"{self.nombre} ({self.get_tipo_display()}) - {self.cliente}"
         return f"{self.get_tipo_display()} - {self.cliente}"
     
-    def save(self, *args, **kwargs):
-        """Sobrescribe el método save para asegurar que solo haya una dirección principal por tipo por cliente."""
+    def clean(self):
+        """Validaciones del modelo."""
+        super().clean()
+        # Validar que no haya más de una dirección principal por tipo
         if self.es_principal:
-            # Desmarcar otras direcciones principales del mismo tipo y cliente
+            existing = DireccionCliente.objects.filter(
+                cliente=self.cliente,
+                tipo=self.tipo,
+                es_principal=True
+            ).exclude(pk=self.pk)
+            if existing.exists():
+                from django.core.exceptions import ValidationError
+                raise ValidationError({
+                    'es_principal': f'Ya existe una dirección principal de tipo {self.get_tipo_display()} para este cliente.'
+                })
+    
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        if self.es_principal:
             DireccionCliente.objects.filter(
                 cliente=self.cliente, 
                 tipo=self.tipo, 
                 es_principal=True
             ).exclude(pk=self.pk).update(es_principal=False)
         super().save(*args, **kwargs)
+    
+    @property
+    def direccion_completa(self):
+        """Retorna la dirección completa formateada."""
+        partes = [self.direccion]
+        if self.ciudad:
+            partes.append(self.ciudad)
+        if self.provincia:
+            partes.append(self.provincia)
+        if self.codigo_postal:
+            partes.append(self.codigo_postal)
+        return ', '.join(partes)

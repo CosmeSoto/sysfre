@@ -2,13 +2,14 @@ from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
 from .models import ModeloBase, TipoIVA, Empresa, Sucursal, ConfiguracionSistema, Usuario
+from clientes.models import Cliente
 from .middleware import get_usuario_actual, get_request_actual
 from .services.log_service import LogService
 from .services import IVAService
 from .constants import TiposActividad, MensajesAuditoria
 
 # Modelos que serán auditados automáticamente
-AUDITED_MODELS = [TipoIVA, Empresa, Sucursal, ConfiguracionSistema, Usuario]
+AUDITED_MODELS = [TipoIVA, Empresa, Sucursal, ConfiguracionSistema, Usuario, Cliente]
 
 
 def get_client_info(request):

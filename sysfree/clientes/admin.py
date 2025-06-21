@@ -4,15 +4,13 @@ from django.contrib import messages
 from django.urls import reverse
 from django.utils.html import format_html
 from .models import Cliente, ContactoCliente, DireccionCliente
-from ecommerce.models import Pedido
 from .services.cliente_service import ClienteService
-from core.models import Usuario
 from django.utils.crypto import get_random_string
 
 class ContactoClienteInline(admin.TabularInline):
     model = ContactoCliente
     extra = 0
-    fields = ('nombres', 'apellidos', 'cargo', 'email', 'es_principal')
+    fields = ('tipo', 'nombres', 'apellidos', 'cargo', 'email', 'es_principal')
     readonly_fields = ('creado_por', 'fecha_creacion')
     can_delete = True
     max_num = 5
@@ -25,16 +23,7 @@ class DireccionClienteInline(admin.TabularInline):
     can_delete = True
     max_num = 5
 
-class PedidoInline(admin.TabularInline):
-    model = Pedido
-    extra = 0
-    fields = ('numero', 'fecha', 'total', 'estado')
-    readonly_fields = ('numero', 'fecha', 'total')
-    can_delete = False
-    verbose_name = _('pedido')
-    verbose_name_plural = _('pedidos')
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related('cliente')
+# PedidoInline removido - se manejará desde el módulo ecommerce
 
 @admin.register(Cliente)
 class ClienteAdmin(admin.ModelAdmin):
@@ -46,7 +35,7 @@ class ClienteAdmin(admin.ModelAdmin):
         'telefono',
         'num_direcciones',
         'num_contactos',
-        'num_pedidos',
+        # 'num_pedidos',  # Comentado hasta que se configure la relación con ecommerce
         'recibir_promociones',
         'tiene_acceso_portal',
         'activo',
@@ -61,7 +50,7 @@ class ClienteAdmin(admin.ModelAdmin):
     )
     search_fields = ('identificacion', 'nombres', 'apellidos', 'nombre_comercial', 'email')
     readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
-    inlines = [ContactoClienteInline, DireccionClienteInline, PedidoInline]
+    inlines = [ContactoClienteInline, DireccionClienteInline]
     actions = ['activar_clientes', 'desactivar_clientes', 'enviar_correo_bienvenida']
     ordering = ('apellidos', 'nombres')
     autocomplete_fields = ['usuario']
@@ -92,11 +81,17 @@ class ClienteAdmin(admin.ModelAdmin):
     num_contactos.short_description = _('Nº Contactos')
 
     def num_pedidos(self, obj):
-        return format_html(
-            '<a href="{}">{}</a>',
-            reverse('admin:ecommerce_pedido_changelist') + f'?cliente__id__exact={obj.id}',
-            obj.pedidos.count()
-        )
+        try:
+            count = obj.pedidos.count() if hasattr(obj, 'pedidos') else 0
+            if count > 0:
+                return format_html(
+                    '<a href="{}">{}</a>',
+                    reverse('admin:ecommerce_pedido_changelist') + f'?cliente__id__exact={obj.id}',
+                    count
+                )
+            return count
+        except:
+            return 0
     num_pedidos.short_description = _('Nº Pedidos')
 
     def activar_clientes(self, request, queryset):
@@ -110,30 +105,28 @@ class ClienteAdmin(admin.ModelAdmin):
     desactivar_clientes.short_description = _('Desactivar clientes seleccionados')
 
     def enviar_correo_bienvenida(self, request, queryset):
-        for cliente in queryset.filter(usuario__isnull=False, email__isnull=False):
+        enviados = 0
+        for cliente in queryset.filter(email__isnull=False):
             if cliente.email and cliente.tiene_acceso_portal:
                 try:
                     password = get_random_string(12)
                     cliente.usuario.set_password(password)
                     cliente.usuario.save()
                     ClienteService.send_welcome_email(cliente, password)
-                    self.message_user(
-                        request,
-                        f"Correo de bienvenida enviado a {cliente.nombre_completo}",
-                        messages.SUCCESS
-                    )
+                    enviados += 1
                 except Exception as e:
                     self.message_user(
                         request,
                         f"Error al enviar correo a {cliente.nombre_completo}: {str(e)}",
                         messages.ERROR
                     )
-            else:
-                self.message_user(
-                    request,
-                    f"No se pudo enviar correo a {cliente.nombre_completo}: falta email o usuario inactivo",
-                    messages.WARNING
-                )
+        
+        if enviados > 0:
+            self.message_user(
+                request,
+                f"Se enviaron {enviados} correos de bienvenida exitosamente.",
+                messages.SUCCESS
+            )
     enviar_correo_bienvenida.short_description = _('Enviar correo de bienvenida')
 
     def save_model(self, request, obj, form, change):
@@ -152,17 +145,18 @@ class ClienteAdmin(admin.ModelAdmin):
 
 @admin.register(ContactoCliente)
 class ContactoClienteAdmin(admin.ModelAdmin):
-    list_display = ('nombres', 'apellidos', 'cliente', 'cargo', 'email', 'telefono', 'es_principal', 'activo')
-    list_filter = ('es_principal', 'activo', 'cliente__tipo_cliente')
+    list_display = ('nombres', 'apellidos', 'cliente', 'tipo', 'cargo', 'email', 'telefono', 'es_principal', 'activo')
+    list_filter = ('tipo', 'es_principal', 'activo', 'cliente__tipo_cliente')
     search_fields = (
-        'nombres', 'apellidos', 'email',
+        'nombres', 'apellidos', 'email', 'cargo',
         'cliente__nombres', 'cliente__apellidos', 'cliente__nombre_comercial'
     )
     readonly_fields = ('fecha_creacion', 'fecha_modificacion', 'creado_por', 'modificado_por')
     autocomplete_fields = ['cliente']
+    ordering = ['cliente', '-es_principal', 'tipo', 'nombres']
 
     fieldsets = (
-        (None, {'fields': ('cliente', 'nombres', 'apellidos', 'cargo')}),
+        (None, {'fields': ('cliente', 'tipo', 'nombres', 'apellidos', 'cargo')}),
         (_('Contacto'), {'fields': ('email', 'telefono', 'celular')}),
         (_('Información adicional'), {'fields': ('es_principal', 'notas')}),
         (_('Auditoría'), {

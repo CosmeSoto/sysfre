@@ -2,9 +2,10 @@ from django.db.models import Q
 from django.utils.crypto import get_random_string
 from django.core.mail import send_mail
 from django.conf import settings
-from django.core.cache import cache
 from ..models import Cliente, ContactoCliente, DireccionCliente
 from core.models import Usuario
+from core.services.cache_service import CacheService
+from core.services.auditoria_service import AuditoriaService
 
 
 class ClienteService:
@@ -21,29 +22,20 @@ class ClienteService:
         Returns:
             QuerySet: Clientes que coinciden con la búsqueda
         """
-        # Crear una clave única para el caché
-        cache_key = f'cliente_service_buscar_{termino}'
+        cache_key = f'cliente_buscar_{termino}'
         
-        # Intentar obtener del caché
-        cached_result = cache.get(cache_key)
-        if cached_result is not None:
-            return cached_result
+        def buscar_query():
+            return list(Cliente.objects.filter(
+                Q(identificacion__icontains=termino) |
+                Q(nombres__icontains=termino) |
+                Q(apellidos__icontains=termino) |
+                Q(nombre_comercial__icontains=termino) |
+                Q(email__icontains=termino) |
+                Q(telefono__icontains=termino) |
+                Q(celular__icontains=termino)
+            ).filter(activo=True))
         
-        # Si no está en caché, realizar la consulta
-        clientes = Cliente.objects.filter(
-            Q(identificacion__icontains=termino) |
-            Q(nombres__icontains=termino) |
-            Q(apellidos__icontains=termino) |
-            Q(nombre_comercial__icontains=termino) |
-            Q(email__icontains=termino) |
-            Q(telefono__icontains=termino) |
-            Q(celular__icontains=termino)
-        ).filter(activo=True)
-        
-        # Guardar en caché por 5 minutos
-        cache.set(cache_key, clientes, 60 * 5)
-        
-        return clientes
+        return CacheService.get_or_set(cache_key, buscar_query, 300)  # 5 minutos
     
     @classmethod
     def crear_cliente_con_usuario(cls, datos_cliente, crear_usuario=False, enviar_email=False):
@@ -58,22 +50,25 @@ class ClienteService:
         Returns:
             tuple: (Cliente creado, Usuario creado, Contraseña generada)
         """
-        # Crear el cliente
         cliente = Cliente.objects.create(**datos_cliente)
+        
+        # Registrar auditoría
+        AuditoriaService.registrar_actividad_personalizada(
+            accion="CLIENTE_CREADO",
+            descripcion=f"Cliente creado: {cliente.nombre_completo} ({cliente.identificacion})",
+            modelo="Cliente",
+            objeto_id=cliente.id,
+            datos={'identificacion': cliente.identificacion, 'tipo': cliente.tipo_cliente}
+        )
         
         usuario = None
         password = None
         
-        # Crear usuario si se solicita y hay email
         if crear_usuario and cliente.email:
-            # Verificar si ya existe un usuario con ese email
             try:
                 usuario = Usuario.objects.get(email=cliente.email)
             except Usuario.DoesNotExist:
-                # Generar una contraseña aleatoria
                 password = get_random_string(12)
-                
-                # Crear el usuario
                 usuario = Usuario.objects.create_user(
                     email=cliente.email,
                     password=password,
@@ -82,11 +77,9 @@ class ClienteService:
                     is_active=True
                 )
             
-            # Asignar el usuario al cliente
             cliente.usuario = usuario
             cliente.save(update_fields=['usuario'])
             
-            # Enviar email con las credenciales
             if enviar_email and password:
                 cls.send_welcome_email(cliente, password)
         
@@ -131,36 +124,24 @@ class ClienteService:
         Returns:
             DireccionCliente: Dirección de facturación principal o None
         """
-        # Crear una clave única para el caché
-        cache_key = f'cliente_direccion_facturacion_{cliente.id}'
+        cache_key = f'cliente_dir_fact_{cliente.id}'
         
-        # Intentar obtener del caché
-        cached_result = cache.get(cache_key)
-        if cached_result is not None:
-            return cached_result
-        
-        try:
-            direccion = DireccionCliente.objects.get(
-                cliente=cliente,
-                tipo='facturacion',
-                es_principal=True,
-                activo=True
-            )
-        except DireccionCliente.DoesNotExist:
-            # Si no hay dirección principal, intentar obtener cualquier dirección de facturación
+        def obtener_direccion():
             try:
-                direccion = DireccionCliente.objects.filter(
+                return DireccionCliente.objects.get(
+                    cliente=cliente,
+                    tipo='facturacion',
+                    es_principal=True,
+                    activo=True
+                )
+            except DireccionCliente.DoesNotExist:
+                return DireccionCliente.objects.filter(
                     cliente=cliente,
                     tipo='facturacion',
                     activo=True
                 ).first()
-            except DireccionCliente.DoesNotExist:
-                direccion = None
         
-        # Guardar en caché por 30 minutos
-        cache.set(cache_key, direccion, 60 * 30)
-        
-        return direccion
+        return CacheService.get_or_set(cache_key, obtener_direccion, 1800)  # 30 minutos
     
     @classmethod
     def send_welcome_email(cls, cliente, password):
