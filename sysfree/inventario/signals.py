@@ -2,7 +2,6 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 from .models.orden_compra import OrdenCompra
-from .models.producto import Producto
 from .models.movimiento import MovimientoInventario
 from .models.stock_almacen import StockAlmacen
 from .models.almacen import Almacen
@@ -11,6 +10,8 @@ from decimal import Decimal
 import logging
 
 logger = logging.getLogger(__name__)
+
+# Las señales de auditoría están en core.signals
 
 @receiver(post_save, sender=MovimientoInventario)
 def actualizar_stock_producto(sender, instance, created, **kwargs):

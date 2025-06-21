@@ -8,4 +8,4 @@ class InventarioConfig(AppConfig):
     verbose_name = _('Inventario')
     
     def ready(self):
-        import inventario.signals 
+        import inventario.signals  # Señales específicas de inventario

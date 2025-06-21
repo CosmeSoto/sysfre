@@ -7,6 +7,7 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from inventario.models import Producto, AlertaStock
+from core.services.auditoria_service import AuditoriaService
 
 User = get_user_model()
 
@@ -67,6 +68,15 @@ class StockNotificationService:
                     send_mail(subject, message, from_email, recipient_list)
                     alerta.notificado = True
                     alerta.save()
+                    
+                    # Registrar auditoría
+                    AuditoriaService.registrar_actividad_personalizada(
+                        accion="ALERTA_STOCK_BAJO",
+                        descripcion=f"Alerta de stock bajo enviada para {producto.nombre} (Stock: {producto.stock})",
+                        modelo="Producto",
+                        objeto_id=producto.id,
+                        datos={'stock_actual': producto.stock, 'stock_minimo': producto.stock_minimo}
+                    )
                 except Exception as e:
                     import logging
                     logger = logging.getLogger('sysfree')
@@ -98,6 +108,16 @@ class StockNotificationService:
             alerta.fecha_resolucion = timezone.now()
             alerta.notas = notas
             alerta.save()
+            
+            # Registrar auditoría
+            AuditoriaService.registrar_actividad_personalizada(
+                accion="ALERTA_STOCK_RESUELTA",
+                descripcion=f"Alerta de stock resuelva para {alerta.producto.nombre}",
+                modelo="AlertaStock",
+                objeto_id=alerta.id,
+                datos={'notas': notas}
+            )
+            
             return True
         except AlertaStock.DoesNotExist:
             return False

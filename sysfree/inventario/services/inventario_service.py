@@ -1,8 +1,9 @@
 from django.utils import timezone
 from django.db.models import Sum, F, Q
 from django.db import transaction
-from django.core.cache import cache
 from ..models import Producto, MovimientoInventario, StockAlmacen, Almacen
+from core.services.cache_service import CacheService
+from core.services.auditoria_service import AuditoriaService
 from decimal import Decimal
 import logging
 
@@ -13,34 +14,13 @@ class InventarioService:
     
     @classmethod
     def invalidar_cache_producto(cls, producto_id):
-        """
-        Invalida el caché relacionado con un producto específico.
-        
-        Args:
-            producto_id (int): ID del producto
-        """
-        # Invalidar caché de productos bajo stock
-        cache.delete('productos_bajo_stock')
-        
-        # Invalidar caché de movimientos del producto
-        # Para patrones, necesitamos usar el cliente de Redis directamente
+        """Invalida el caché relacionado con un producto específico."""
         try:
-            # Obtener el cliente Redis
-            from django_redis import get_redis_connection
-            client = get_redis_connection("default")
-            
-            # Buscar claves que coincidan con el patrón
-            for key in client.keys(f'*movimientos_producto_{producto_id}_*'):
-                client.delete(key)
-                
-            # Invalidar caché de la API
-            for key in client.keys(f'*producto*{producto_id}*'):
-                client.delete(key)
-                
+            CacheService.delete('productos_bajo_stock')
+            CacheService.delete_pattern(f'*movimientos_producto_{producto_id}_*')
+            CacheService.delete_pattern(f'*producto*{producto_id}*')
         except Exception as e:
             logger.error(f"Error al invalidar caché: {str(e)}")
-            # Si falla, al menos eliminamos la caché de productos bajo stock
-            pass
     
     @classmethod
     @transaction.atomic
@@ -107,11 +87,18 @@ class InventarioService:
             movimiento.creado_por = usuario
         
         try:
-            movimiento.clean()  # Ejecutar validaciones del modelo
+            movimiento.clean()
             movimiento.save()
             logger.info(f"Movimiento de entrada creado: {movimiento}")
             
-            # Invalidar caché relacionado con este producto
+            # Registrar auditoría
+            AuditoriaService.stock_actualizado(
+                producto=producto,
+                cantidad_anterior=float(movimiento.stock_anterior),
+                cantidad_nueva=float(movimiento.stock_nuevo),
+                motivo=f"Entrada - {origen}"
+            )
+            
             cls.invalidar_cache_producto(producto.id)
         except Exception as e:
             logger.error(f"Error al guardar movimiento de entrada: {str(e)}")
@@ -176,11 +163,18 @@ class InventarioService:
             movimiento.creado_por = usuario
         
         try:
-            movimiento.clean()  # Ejecutar validaciones del modelo
+            movimiento.clean()
             movimiento.save()
             logger.info(f"Movimiento de salida creado: {movimiento}")
             
-            # Invalidar caché relacionado con este producto
+            # Registrar auditoría
+            AuditoriaService.stock_actualizado(
+                producto=producto,
+                cantidad_anterior=float(movimiento.stock_anterior),
+                cantidad_nueva=float(movimiento.stock_nuevo),
+                motivo=f"Salida - {origen}"
+            )
+            
             cls.invalidar_cache_producto(producto.id)
         except Exception as e:
             logger.error(f"Error al guardar movimiento de salida: {str(e)}")
@@ -253,25 +247,14 @@ class InventarioService:
         Returns:
             QuerySet: Productos con stock bajo
         """
-        # Crear una clave única para el caché
-        cache_key = 'productos_bajo_stock'
+        def consulta_productos():
+            return list(Producto.objects.filter(
+                es_inventariable=True,
+                activo=True,
+                stock__lt=F('stock_minimo')
+            ).order_by('nombre'))
         
-        # Intentar obtener del caché
-        cached_result = cache.get(cache_key)
-        if cached_result is not None:
-            return cached_result
-        
-        # Si no está en caché, realizar la consulta
-        productos = Producto.objects.filter(
-            es_inventariable=True,
-            activo=True,
-            stock__lt=F('stock_minimo')
-        ).order_by('nombre')
-        
-        # Guardar en caché por 15 minutos
-        cache.set(cache_key, productos, 60 * 15)
-        
-        return productos
+        return CacheService.get_or_set('productos_bajo_stock', consulta_productos, 900)
     
     @classmethod
     def obtener_movimientos_producto(cls, producto, fecha_inicio=None, fecha_fin=None):
@@ -286,28 +269,16 @@ class InventarioService:
         Returns:
             QuerySet: Movimientos del producto
         """
-        # Crear una clave única para el caché
         fecha_inicio_str = fecha_inicio.isoformat() if fecha_inicio else 'none'
         fecha_fin_str = fecha_fin.isoformat() if fecha_fin else 'none'
         cache_key = f'movimientos_producto_{producto.id}_{fecha_inicio_str}_{fecha_fin_str}'
         
-        # Intentar obtener del caché
-        cached_result = cache.get(cache_key)
-        if cached_result is not None:
-            return cached_result
+        def consulta_movimientos():
+            query = Q(producto=producto)
+            if fecha_inicio:
+                query &= Q(fecha__gte=fecha_inicio)
+            if fecha_fin:
+                query &= Q(fecha__lte=fecha_fin)
+            return list(MovimientoInventario.objects.filter(query).order_by('-fecha'))
         
-        # Si no está en caché, realizar la consulta
-        query = Q(producto=producto)
-        
-        if fecha_inicio:
-            query &= Q(fecha__gte=fecha_inicio)
-        
-        if fecha_fin:
-            query &= Q(fecha__lte=fecha_fin)
-            
-        movimientos = MovimientoInventario.objects.filter(query).order_by('-fecha')
-        
-        # Guardar en caché por 10 minutos
-        cache.set(cache_key, movimientos, 60 * 10)
-        
-        return movimientos
+        return CacheService.get_or_set(cache_key, consulta_movimientos, 600)
