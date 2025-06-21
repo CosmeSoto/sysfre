@@ -2,11 +2,12 @@ import logging
 from django.utils import timezone
 from django.db import transaction
 from django.utils.translation import gettext_lazy as _
-from django.core.cache import cache
 from ventas.models import Venta, DetalleVenta
 from inventario.models import Producto
 from core.models import ConfiguracionSistema
 from core.services import IVAService
+from core.services.cache_service import CacheService
+from core.services.auditoria_service import AuditoriaService
 from core.log_utils import log_function_call
 from inventario.services import InventarioService
 
@@ -17,30 +18,13 @@ class VentaService:
     
     @classmethod
     def invalidar_cache_venta(cls, venta_id=None):
-        """
-        Invalida el caché relacionado con ventas.
-        
-        Args:
-            venta_id (int, optional): ID de la venta específica a invalidar
-        """
-        # Invalidar caché general de ventas
-        cache.delete('ventas_list')
-        
-        # Si se proporciona un ID de venta, invalidar caché específico
-        if venta_id:
-            try:
-                # Obtener el cliente Redis
-                from django_redis import get_redis_connection
-                client = get_redis_connection("default")
-                
-                # Buscar claves que coincidan con el patrón
-                for key in client.keys(f'*venta*{venta_id}*'):
-                    client.delete(key)
-                    
-            except Exception as e:
-                logger.error(f"Error al invalidar caché de venta: {str(e)}")
-                # Si falla, al menos eliminamos la caché general
-                pass
+        """Invalida el caché relacionado con ventas."""
+        try:
+            CacheService.delete('ventas_list')
+            if venta_id:
+                CacheService.delete_pattern(f'*venta*{venta_id}*')
+        except Exception as e:
+            logger.error(f"Error al invalidar caché de venta: {str(e)}")
     
     @classmethod
     def generar_numero(cls, tipo):
@@ -155,6 +139,9 @@ class VentaService:
                 referencia_tipo='Venta'
             )
         
+        # Registrar auditoría
+        AuditoriaService.venta_creada(venta, detalles_a_crear)
+        
         # Invalidar caché
         cls.invalidar_cache_venta()
         
@@ -174,6 +161,15 @@ class VentaService:
         venta.estado = nuevo_estado
         venta.modificado_por = usuario
         venta.save()
+        
+        # Registrar auditoría
+        AuditoriaService.registrar_actividad_personalizada(
+            accion="CAMBIO_ESTADO_VENTA",
+            descripcion=f"Venta {venta.numero} cambió a estado {nuevo_estado}",
+            modelo="Venta",
+            objeto_id=venta.id,
+            datos={'estado_anterior': venta.estado, 'estado_nuevo': nuevo_estado}
+        )
         
         # Invalidar caché
         cls.invalidar_cache_venta(venta.id)
@@ -212,6 +208,15 @@ class VentaService:
             venta.estado = 'pagada'
             venta.modificado_por = usuario
             venta.save()
+        
+        # Registrar auditoría
+        AuditoriaService.registrar_actividad_personalizada(
+            accion="PAGO_REGISTRADO",
+            descripcion=f"Pago registrado para venta {venta.numero}: {metodo} - ${monto}",
+            modelo="Pago",
+            objeto_id=pago.id,
+            datos={'venta': venta.numero, 'metodo': metodo, 'monto': str(monto)}
+        )
         
         # Invalidar caché
         cls.invalidar_cache_venta(venta.id)

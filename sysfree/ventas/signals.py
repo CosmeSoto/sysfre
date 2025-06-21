@@ -4,6 +4,8 @@ from django.utils import timezone
 from .models import Venta, DetalleVenta, Pago, NotaCredito, DetalleNotaCredito
 from inventario.services.inventario_service import InventarioService
 
+# Las señales de auditoría están en core.signals
+
 
 @receiver(post_save, sender=DetalleVenta)
 def actualizar_totales_venta(sender, instance, created, **kwargs):

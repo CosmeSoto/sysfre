@@ -3,6 +3,8 @@ from django.dispatch import receiver
 from django.utils import timezone
 from .models import AsientoContable, LineaAsiento, Comprobante
 
+# Las señales de auditoría están en core.signals
+
 
 @receiver(pre_save, sender=AsientoContable)
 def generar_numero_asiento(sender, instance, **kwargs):

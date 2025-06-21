@@ -6,6 +6,7 @@ from django.utils import timezone
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from core.services import IVAService
+from core.services.auditoria_service import AuditoriaService
 from ..models import Comprobante
 from ventas.models import Venta
 from ..utils.sri_utils import generar_clave_acceso
@@ -72,6 +73,16 @@ class ComprobanteService:
             comprobante.modificado_por = usuario
         
         comprobante.save()
+        
+        # Registrar auditoría
+        AuditoriaService.registrar_actividad_personalizada(
+            accion="COMPROBANTE_CREADO",
+            descripcion=f"Comprobante fiscal creado: {numero} - {tipo}",
+            modelo="Comprobante",
+            objeto_id=comprobante.id,
+            datos={'numero': numero, 'tipo': tipo, 'total': str(comprobante.total)}
+        )
+        
         return comprobante
     
     @classmethod

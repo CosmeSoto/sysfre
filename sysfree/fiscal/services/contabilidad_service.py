@@ -1,6 +1,7 @@
 from django.db import transaction
 from django.utils import timezone
 from ..models import AsientoContable, LineaAsiento, PeriodoFiscal, CuentaContable
+from core.services.auditoria_service import AuditoriaService
 
 
 class ContabilidadService:
@@ -66,6 +67,15 @@ class ContabilidadService:
                 linea.modificado_por = usuario
             
             linea.save()
+        
+        # Registrar auditoría
+        AuditoriaService.registrar_actividad_personalizada(
+            accion="ASIENTO_CONTABLE_CREADO",
+            descripcion=f"Asiento contable creado: {concepto}",
+            modelo="AsientoContable",
+            objeto_id=asiento.id,
+            datos={'concepto': concepto, 'total_lineas': len(lineas)}
+        )
         
         return asiento
     

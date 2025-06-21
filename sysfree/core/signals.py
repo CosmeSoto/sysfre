@@ -5,6 +5,9 @@ from .models import ModeloBase, TipoIVA, Empresa, Sucursal, ConfiguracionSistema
 from clientes.models import Cliente, ContactoCliente, DireccionCliente
 from inventario.models import (Producto, Categoria, Proveedor, MovimientoInventario, AlertaStock, 
                              Almacen, OrdenCompra, ItemOrdenCompra, StockAlmacen, Lote)
+from ventas.models import Venta, DetalleVenta, Pago, NotaCredito, DetalleNotaCredito, Envio
+from fiscal.models import (PeriodoFiscal, CuentaContable, AsientoContable, LineaAsiento, 
+                          Comprobante, Retencion, ComprobanteRetencion, DetalleRetencion)
 from .middleware import get_usuario_actual, get_request_actual
 from .services.log_service import LogService
 from .services import IVAService
@@ -18,7 +21,12 @@ AUDITED_MODELS = [
     Cliente, ContactoCliente, DireccionCliente,
     # Inventario
     Producto, Categoria, Proveedor, MovimientoInventario, AlertaStock,
-    Almacen, OrdenCompra, ItemOrdenCompra, StockAlmacen, Lote
+    Almacen, OrdenCompra, ItemOrdenCompra, StockAlmacen, Lote,
+    # Ventas
+    Venta, DetalleVenta, Pago, NotaCredito, DetalleNotaCredito, Envio,
+    # Fiscal
+    PeriodoFiscal, CuentaContable, AsientoContable, LineaAsiento,
+    Comprobante, Retencion, ComprobanteRetencion, DetalleRetencion
 ]
 
 

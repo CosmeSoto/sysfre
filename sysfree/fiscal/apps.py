@@ -8,4 +8,4 @@ class FiscalConfig(AppConfig):
     verbose_name = _('Gestión Fiscal')
 
     def ready(self):
-        import fiscal.signals  # Importamos las señales al iniciar la aplicación
+        import fiscal.signals  # Señales específicas de fiscal
