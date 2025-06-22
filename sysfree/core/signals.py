@@ -10,6 +10,7 @@ from fiscal.models import (PeriodoFiscal, CuentaContable, AsientoContable, Linea
                           Comprobante, Retencion, ComprobanteRetencion, DetalleRetencion)
 from reparaciones.models import (Reparacion, SeguimientoReparacion, RepuestoReparacion, 
                                ServicioReparacion, CitaServicio, GarantiaReparacion, DetalleServicio)
+from reportes.models import Reporte, ProgramacionReporte, HistorialReporte
 from .middleware import get_usuario_actual, get_request_actual
 from .services.log_service import LogService
 from .services import IVAService
@@ -31,7 +32,9 @@ AUDITED_MODELS = [
     Comprobante, Retencion, ComprobanteRetencion, DetalleRetencion,
     # Reparaciones
     Reparacion, SeguimientoReparacion, RepuestoReparacion,
-    ServicioReparacion, CitaServicio, GarantiaReparacion, DetalleServicio
+    ServicioReparacion, CitaServicio, GarantiaReparacion, DetalleServicio,
+    # Reportes
+    Reporte, ProgramacionReporte, HistorialReporte
 ]
 
 

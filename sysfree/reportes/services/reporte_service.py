@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.template.loader import render_to_string
 from django.core.files.base import ContentFile
 from ..models import Reporte, HistorialReporte
+from core.services.auditoria_service import AuditoriaService
 
 
 class ReporteService:
@@ -58,6 +59,20 @@ class ReporteService:
             historial.mensaje_error = str(e)
         
         historial.save()
+        
+        # Registrar auditoría
+        AuditoriaService.registrar_actividad_personalizada(
+            accion="REPORTE_EJECUTADO",
+            descripcion=f"Reporte ejecutado: {reporte.nombre} - Estado: {historial.estado}",
+            modelo="HistorialReporte",
+            objeto_id=historial.id,
+            datos={
+                'reporte': reporte.nombre,
+                'formato': reporte.formato,
+                'estado': historial.estado,
+                'duracion': historial.duracion
+            }
+        )
         
         # Si es una programación, actualizar la última ejecución
         if programacion:

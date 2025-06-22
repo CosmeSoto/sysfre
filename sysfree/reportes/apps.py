@@ -8,4 +8,4 @@ class ReportesConfig(AppConfig):
     verbose_name = _('Reportes')
 
     def ready(self):
-        import reportes.signals  # Importamos las señales al iniciar la aplicación
+        import reportes.signals  # Señales específicas de reportes
