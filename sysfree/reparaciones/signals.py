@@ -4,6 +4,8 @@ from django.utils import timezone
 from .models import Reparacion, SeguimientoReparacion, RepuestoReparacion
 from inventario.services.inventario_service import InventarioService
 
+# Las señales de auditoría están en core.signals
+
 
 @receiver(pre_save, sender=Reparacion)
 def registrar_seguimiento_reparacion(sender, instance, **kwargs):

@@ -8,6 +8,8 @@ from inventario.models import (Producto, Categoria, Proveedor, MovimientoInventa
 from ventas.models import Venta, DetalleVenta, Pago, NotaCredito, DetalleNotaCredito, Envio
 from fiscal.models import (PeriodoFiscal, CuentaContable, AsientoContable, LineaAsiento, 
                           Comprobante, Retencion, ComprobanteRetencion, DetalleRetencion)
+from reparaciones.models import (Reparacion, SeguimientoReparacion, RepuestoReparacion, 
+                               ServicioReparacion, CitaServicio, GarantiaReparacion, DetalleServicio)
 from .middleware import get_usuario_actual, get_request_actual
 from .services.log_service import LogService
 from .services import IVAService
@@ -26,7 +28,10 @@ AUDITED_MODELS = [
     Venta, DetalleVenta, Pago, NotaCredito, DetalleNotaCredito, Envio,
     # Fiscal
     PeriodoFiscal, CuentaContable, AsientoContable, LineaAsiento,
-    Comprobante, Retencion, ComprobanteRetencion, DetalleRetencion
+    Comprobante, Retencion, ComprobanteRetencion, DetalleRetencion,
+    # Reparaciones
+    Reparacion, SeguimientoReparacion, RepuestoReparacion,
+    ServicioReparacion, CitaServicio, GarantiaReparacion, DetalleServicio
 ]
 
 

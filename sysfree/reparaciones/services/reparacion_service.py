@@ -3,6 +3,7 @@ from django.db import transaction
 from django.db.models import Q
 from ..models import Reparacion, SeguimientoReparacion, RepuestoReparacion
 from inventario.models import Producto
+from core.services.auditoria_service import AuditoriaService
 
 
 class ReparacionService:
@@ -55,6 +56,16 @@ class ReparacionService:
             reparacion.modificado_por = usuario
         
         reparacion.save()
+        
+        # Registrar auditoría
+        AuditoriaService.registrar_actividad_personalizada(
+            accion="REPARACION_CREADA",
+            descripcion=f"Reparación creada: {numero} - {tipo_equipo} {marca} {modelo}",
+            modelo="Reparacion",
+            objeto_id=reparacion.id,
+            datos={'numero': numero, 'cliente': str(cliente), 'tipo_equipo': tipo_equipo}
+        )
+        
         return reparacion
     
     @classmethod
@@ -102,6 +113,15 @@ class ReparacionService:
         
         seguimiento.save()
         
+        # Registrar auditoría
+        AuditoriaService.registrar_actividad_personalizada(
+            accion="CAMBIO_ESTADO_REPARACION",
+            descripcion=f"Reparación {reparacion.numero} cambió de {estado_anterior} a {nuevo_estado}",
+            modelo="Reparacion",
+            objeto_id=reparacion.id,
+            datos={'estado_anterior': estado_anterior, 'estado_nuevo': nuevo_estado}
+        )
+        
         # Notificar al cliente si se solicita
         if notificar_cliente:
             cls._notificar_cliente(reparacion, seguimiento)
@@ -140,6 +160,16 @@ class ReparacionService:
             repuesto.modificado_por = usuario
         
         repuesto.save()
+        
+        # Registrar auditoría
+        AuditoriaService.registrar_actividad_personalizada(
+            accion="REPUESTO_AGREGADO",
+            descripcion=f"Repuesto agregado a reparación {reparacion.numero}: {producto.nombre} x{cantidad}",
+            modelo="RepuestoReparacion",
+            objeto_id=repuesto.id,
+            datos={'reparacion': reparacion.numero, 'producto': producto.nombre, 'cantidad': cantidad}
+        )
+        
         return repuesto
     
     @classmethod
