@@ -3,10 +3,11 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.contrib.contenttypes.models import ContentType
 from django.conf import settings
-from django.core.cache import cache
 from ..models import Pedido, DetallePedido
 from reparaciones.models import Reparacion, ServicioReparacion
 from inventario.models import Producto
+from core.services.cache_service import CacheService
+from core.services.auditoria_service import AuditoriaService
 import uuid
 import logging
 
@@ -18,30 +19,13 @@ class PedidoService:
     
     @classmethod
     def invalidar_cache_pedido(cls, pedido_id=None):
-        """
-        Invalida el caché relacionado con pedidos.
-        
-        Args:
-            pedido_id (int, optional): ID del pedido específico a invalidar
-        """
-        # Invalidar caché general de pedidos
-        cache.delete('pedidos_list')
-        
-        # Si se proporciona un ID de pedido, invalidar caché específico
-        if pedido_id:
-            try:
-                # Obtener el cliente Redis
-                from django_redis import get_redis_connection
-                client = get_redis_connection("default")
-                
-                # Buscar claves que coincidan con el patrón
-                for key in client.keys(f'*pedido*{pedido_id}*'):
-                    client.delete(key)
-                    
-            except Exception as e:
-                logger.error(f"Error al invalidar caché de pedido: {str(e)}")
-                # Si falla, al menos eliminamos la caché general
-                pass
+        """Invalida el caché relacionado con pedidos."""
+        try:
+            CacheService.delete('pedidos_list')
+            if pedido_id:
+                CacheService.delete_pattern(f'*pedido*{pedido_id}*')
+        except Exception as e:
+            logger.error(f"Error al invalidar caché de pedido: {str(e)}")
     
     @staticmethod
     @transaction.atomic
@@ -119,6 +103,15 @@ class PedidoService:
         carrito.convertido_a_pedido = True
         carrito.save()
         
+        # Registrar auditoría
+        AuditoriaService.registrar_actividad_personalizada(
+            accion="PEDIDO_CREADO",
+            descripcion=f"Pedido creado desde carrito: {numero_pedido}",
+            modelo="Pedido",
+            objeto_id=pedido.id,
+            datos={'numero': numero_pedido, 'cliente': str(carrito.cliente), 'total': str(pedido.total)}
+        )
+        
         # Invalidar caché
         PedidoService.invalidar_cache_pedido()
         
@@ -188,6 +181,15 @@ class PedidoService:
         
         pedido.estado = nuevo_estado
         pedido.save()
+        
+        # Registrar auditoría
+        AuditoriaService.registrar_actividad_personalizada(
+            accion="CAMBIO_ESTADO_PEDIDO",
+            descripcion=f"Pedido {pedido.numero} cambió a estado {nuevo_estado}",
+            modelo="Pedido",
+            objeto_id=pedido.id,
+            datos={'estado_nuevo': nuevo_estado}
+        )
         
         # Invalidar caché
         PedidoService.invalidar_cache_pedido(pedido.id)

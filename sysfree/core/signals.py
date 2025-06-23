@@ -11,6 +11,9 @@ from fiscal.models import (PeriodoFiscal, CuentaContable, AsientoContable, Linea
 from reparaciones.models import (Reparacion, SeguimientoReparacion, RepuestoReparacion, 
                                ServicioReparacion, CitaServicio, GarantiaReparacion, DetalleServicio)
 from reportes.models import Reporte, ProgramacionReporte, HistorialReporte
+from ecommerce.models import (CategoriaEcommerce, ProductoEcommerce, ImagenProducto, Carrito, ItemCarrito,
+                            Pedido, DetallePedido, PagoOnline, ConfiguracionTienda, ServicioEcommerce,
+                            Valoracion, ValoracionServicio, ListaDeseos, ItemListaDeseos, Comparacion, ReservaStock)
 from .middleware import get_usuario_actual, get_request_actual
 from .services.log_service import LogService
 from .services import IVAService
@@ -34,7 +37,11 @@ AUDITED_MODELS = [
     Reparacion, SeguimientoReparacion, RepuestoReparacion,
     ServicioReparacion, CitaServicio, GarantiaReparacion, DetalleServicio,
     # Reportes
-    Reporte, ProgramacionReporte, HistorialReporte
+    Reporte, ProgramacionReporte, HistorialReporte,
+    # Ecommerce
+    CategoriaEcommerce, ProductoEcommerce, ImagenProducto, Carrito, ItemCarrito,
+    Pedido, DetallePedido, PagoOnline, ConfiguracionTienda, ServicioEcommerce,
+    Valoracion, ValoracionServicio, ListaDeseos, ItemListaDeseos, Comparacion, ReservaStock
 ]
 
 

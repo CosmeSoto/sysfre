@@ -1,10 +1,11 @@
 from django.db import transaction
 from django.contrib.contenttypes.models import ContentType
 from django.utils.translation import gettext_lazy as _
-from django.core.cache import cache
 from ..models import Carrito, ItemCarrito
 from inventario.models import Producto
 from reparaciones.models import ServicioReparacion
+from core.services.cache_service import CacheService
+from core.services.auditoria_service import AuditoriaService
 import logging
 
 logger = logging.getLogger('sysfree')
@@ -15,31 +16,14 @@ class CarritoService:
     
     @classmethod
     def invalidar_cache_carrito(cls, carrito_id=None, cliente_id=None):
-        """
-        Invalida el caché relacionado con carritos.
-        
-        Args:
-            carrito_id (int, optional): ID del carrito específico a invalidar
-            cliente_id (int, optional): ID del cliente para invalidar sus carritos
-        """
+        """Invalida el caché relacionado con carritos."""
         try:
-            # Obtener el cliente Redis
-            from django_redis import get_redis_connection
-            client = get_redis_connection("default")
-            
-            # Invalidar caché específico de carrito
             if carrito_id:
-                for key in client.keys(f'*carrito*{carrito_id}*'):
-                    client.delete(key)
-            
-            # Invalidar caché de carritos de un cliente
+                CacheService.delete_pattern(f'*carrito*{carrito_id}*')
             if cliente_id:
-                for key in client.keys(f'*carrito*cliente*{cliente_id}*'):
-                    client.delete(key)
-                    
+                CacheService.delete_pattern(f'*carrito*cliente*{cliente_id}*')
         except Exception as e:
             logger.error(f"Error al invalidar caché de carrito: {str(e)}")
-            pass
     
     @staticmethod
     def obtener_o_crear_carrito(request):
@@ -124,6 +108,15 @@ class CarritoService:
                 
                 logger.info(f"Servicio {servicio.nombre} agregado al carrito {carrito.id}")
                 
+                # Registrar auditoría
+                AuditoriaService.registrar_actividad_personalizada(
+                    accion="SERVICIO_AGREGADO_CARRITO",
+                    descripcion=f"Servicio agregado al carrito: {servicio.nombre} x{cantidad}",
+                    modelo="ItemCarrito",
+                    objeto_id=item.id,
+                    datos={'servicio': servicio.nombre, 'cantidad': cantidad, 'precio': str(servicio.precio)}
+                )
+                
                 # Invalidar caché
                 CarritoService.invalidar_cache_carrito(carrito.id)
                 if carrito.cliente:
@@ -166,6 +159,15 @@ class CarritoService:
                 carrito.actualizar_totales()
                 
                 logger.info(f"Producto {producto.nombre} agregado al carrito {carrito.id}")
+                
+                # Registrar auditoría
+                AuditoriaService.registrar_actividad_personalizada(
+                    accion="PRODUCTO_AGREGADO_CARRITO",
+                    descripcion=f"Producto agregado al carrito: {producto.nombre} x{cantidad}",
+                    modelo="ItemCarrito",
+                    objeto_id=item.id,
+                    datos={'producto': producto.nombre, 'cantidad': cantidad, 'precio': str(producto.precio_venta)}
+                )
                 
                 # Invalidar caché
                 CarritoService.invalidar_cache_carrito(carrito.id)

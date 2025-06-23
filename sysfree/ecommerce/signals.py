@@ -5,6 +5,8 @@ from .models import Pedido, DetallePedido, PagoOnline, ProductoEcommerce
 from ventas.services.venta_service import VentaService
 from inventario.services.inventario_service import InventarioService
 
+# Las señales de auditoría están en core.signals
+
 
 @receiver(post_save, sender=Pedido)
 def actualizar_totales_pedido(sender, instance, created, **kwargs):
